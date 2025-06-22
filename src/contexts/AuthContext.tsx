@@ -67,59 +67,72 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     console.log('Setting up auth state listener');
     
+    let mounted = true;
+
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!mounted) return;
+        
         console.log('Auth state changed:', event, session?.user?.id);
         
         setSession(session);
         setUser(session?.user ?? null);
         
-        if (session?.user) {
-          await fetchUserProfile(session.user.id);
-        } else {
+        if (session?.user && mounted) {
+          fetchUserProfile(session.user.id);
+        } else if (mounted) {
           setProfile(null);
         }
         
-        setIsLoading(false);
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     );
 
-    // Check for existing session on mount
+    // Get initial session only once
     const getInitialSession = async () => {
       try {
-        console.log('Checking for existing session');
+        console.log('Getting initial session');
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error('Error getting session:', error);
-          setIsLoading(false);
+          if (mounted) {
+            setIsLoading(false);
+          }
           return;
         }
 
-        if (session) {
-          console.log('Found existing session');
+        // Only update state if component is still mounted
+        if (mounted) {
+          console.log('Initial session retrieved:', !!session);
           setSession(session);
-          setUser(session.user);
-          await fetchUserProfile(session.user.id);
-        } else {
-          console.log('No existing session found');
+          setUser(session?.user ?? null);
+          
+          if (session?.user) {
+            await fetchUserProfile(session.user.id);
+          }
+          
+          setIsLoading(false);
         }
-        
-        setIsLoading(false);
       } catch (error) {
         console.error('Error in getInitialSession:', error);
-        setIsLoading(false);
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     getInitialSession();
 
     return () => {
+      mounted = false;
       console.log('Cleaning up auth subscription');
       subscription.unsubscribe();
     };
-  }, []);
+  }, []); // Empty dependency array to prevent re-running
 
   const signIn = async (email: string, password: string) => {
     try {
