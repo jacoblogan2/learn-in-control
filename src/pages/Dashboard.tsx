@@ -16,7 +16,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 
 const Dashboard = () => {
-  const { currentUser } = useAuth();
+  const { profile } = useAuth();
   const { students, teachers, classrooms, schools } = useData();
 
   // Stats for admin dashboard
@@ -48,9 +48,9 @@ const Dashboard = () => {
   ];
 
   // Select stats based on user role
-  const stats = currentUser?.role === 'admin' 
+  const stats = profile?.role === 'admin' 
     ? adminStats 
-    : currentUser?.role === 'teacher' 
+    : profile?.role === 'lecturer' 
       ? teacherStats 
       : studentStats;
 
@@ -85,7 +85,7 @@ const Dashboard = () => {
         ))}
       </div>
       
-      {currentUser?.role === 'admin' && (
+      {profile?.role === 'admin' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
@@ -144,7 +144,7 @@ const Dashboard = () => {
         </div>
       )}
       
-      {currentUser?.role === 'student' && (
+      {profile?.role === 'student' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
@@ -197,7 +197,7 @@ const Dashboard = () => {
         </div>
       )}
       
-      {currentUser?.role === 'teacher' && (
+      {profile?.role === 'lecturer' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader>

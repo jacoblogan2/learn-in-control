@@ -5,10 +5,10 @@ import Dashboard from "./Dashboard";
 import Layout from "../components/Layout";
 
 const Index = () => {
-  const { currentUser } = useAuth();
+  const { user } = useAuth();
 
-  if (!currentUser) {
-    return <Navigate to="/login" replace />;
+  if (!user) {
+    return <Navigate to="/auth" replace />;
   }
 
   return (
