@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -9,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const Grades: React.FC = () => {
-  const { profile } = useAuth();
+  const { currentUser } = useAuth();
   const { 
     schools, 
     classrooms, 
@@ -39,8 +40,8 @@ const Grades: React.FC = () => {
     : [];
 
   // Get student grades - for student users
-  const studentGrades = profile?.role === 'student'
-    ? grades.filter(grade => grade.studentId === profile.user_id)
+  const studentGrades = currentUser?.role === 'student'
+    ? grades.filter(grade => grade.studentId === currentUser.id)
     : [];
     
   // Handle school change
@@ -90,7 +91,7 @@ const Grades: React.FC = () => {
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Grades Management</h1>
 
-      {profile?.role === 'student' ? (
+      {currentUser?.role === 'student' ? (
         <Card>
           <CardHeader>
             <CardTitle>My Grades</CardTitle>

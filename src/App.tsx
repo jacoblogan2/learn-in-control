@@ -8,12 +8,10 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { DataProvider } from "./contexts/DataContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import ProtectedRoute from "./components/ProtectedRoute";
 
 // Pages
 import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
-import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Students from "./pages/Students";
 import StudentDetails from "./pages/StudentDetails";
@@ -67,201 +65,145 @@ const App = () => {
                 <Routes>
                   <Route path="/welcome" element={<LandingPage />} />
                   <Route path="/login" element={<Login />} />
-                  <Route path="/auth" element={<Auth />} />
                   
-                  {/* Protected Admin Routes */}
+                  {/* Dashboard */}
                   <Route path="/" element={
-                    <ProtectedRoute requiredRole="admin">
-                      <Layout>
-                        <Dashboard />
-                      </Layout>
-                    </ProtectedRoute>
+                    <Layout>
+                      <Dashboard />
+                    </Layout>
                   } />
                   
+                  {/* Students */}
                   <Route path="/students" element={
-                    <ProtectedRoute requiredRole="admin">
-                      <Layout>
-                        <Students />
-                      </Layout>
-                    </ProtectedRoute>
+                    <Layout>
+                      <Students />
+                    </Layout>
                   } />
-                  
                   <Route path="/all-students" element={
-                    <ProtectedRoute requiredRole="admin">
-                      <Layout>
-                        <Students />
-                      </Layout>
-                    </ProtectedRoute>
+                    <Layout>
+                      <Students />
+                    </Layout>
                   } />
-                  
                   <Route path="/student-details" element={
-                    <ProtectedRoute requiredRole="admin">
-                      <Layout>
-                        <StudentDetails />
-                      </Layout>
-                    </ProtectedRoute>
+                    <Layout>
+                      <StudentDetails />
+                    </Layout>
                   } />
-                  
                   <Route path="/admit-form" element={
-                    <ProtectedRoute requiredRole="admin">
-                      <Layout>
-                        <AdmitForm />
-                      </Layout>
-                    </ProtectedRoute>
+                    <Layout>
+                      <AdmitForm />
+                    </Layout>
                   } />
                   
+                  {/* Teachers */}
                   <Route path="/teachers" element={
-                    <ProtectedRoute requiredRole="admin">
-                      <Layout>
-                        <TeachersList />
-                      </Layout>
-                    </ProtectedRoute>
+                    <Layout>
+                      <TeachersList />
+                    </Layout>
                   } />
-                  
                   <Route path="/all-teachers" element={
-                    <ProtectedRoute requiredRole="admin">
-                      <Layout>
-                        <TeachersList />
-                      </Layout>
-                    </ProtectedRoute>
+                    <Layout>
+                      <TeachersList />
+                    </Layout>
                   } />
-                  
                   <Route path="/teacher-details" element={
-                    <ProtectedRoute requiredRole="admin">
-                      <Layout>
-                        <TeacherDetails />
-                      </Layout>
-                    </ProtectedRoute>
+                    <Layout>
+                      <TeacherDetails />
+                    </Layout>
                   } />
-                  
                   <Route path="/add-teacher" element={
-                    <ProtectedRoute requiredRole="admin">
-                      <Layout>
-                        <AddTeacher />
-                      </Layout>
-                    </ProtectedRoute>
+                    <Layout>
+                      <AddTeacher />
+                    </Layout>
                   } />
                   
+                  {/* Parents */}
                   <Route path="/parents" element={
-                    <ProtectedRoute requiredRole="admin">
-                      <Layout>
-                        <Parents />
-                      </Layout>
-                    </ProtectedRoute>
+                    <Layout>
+                      <Parents />
+                    </Layout>
                   } />
                   
+                  {/* Account */}
                   <Route path="/fees-collection" element={
-                    <ProtectedRoute requiredRole="admin">
-                      <Layout>
-                        <FeesCollection />
-                      </Layout>
-                    </ProtectedRoute>
+                    <Layout>
+                      <FeesCollection />
+                    </Layout>
                   } />
-                  
                   <Route path="/create-payment" element={
-                    <ProtectedRoute>
-                      <Layout>
-                        <CreatePayment />
-                      </Layout>
-                    </ProtectedRoute>
+                    <Layout>
+                      <CreatePayment />
+                    </Layout>
                   } />
                   
+                  {/* School */}
                   <Route path="/schools" element={
-                    <ProtectedRoute requiredRole="admin">
-                      <Layout>
-                        <Schools />
-                      </Layout>
-                    </ProtectedRoute>
+                    <Layout>
+                      <Schools />
+                    </Layout>
                   } />
                   
+                  {/* Classroom */}
                   <Route path="/classrooms" element={
-                    <ProtectedRoute requiredRole="admin">
-                      <Layout>
-                        <Classrooms />
-                      </Layout>
-                    </ProtectedRoute>
+                    <Layout>
+                      <Classrooms />
+                    </Layout>
                   } />
                   
+                  {/* Attendance */}
                   <Route path="/attendance" element={
-                    <ProtectedRoute>
-                      <Layout>
-                        <Attendance />
-                      </Layout>
-                    </ProtectedRoute>
+                    <Layout>
+                      <Attendance />
+                    </Layout>
                   } />
                   
+                  {/* Grades */}
                   <Route path="/grades" element={
-                    <ProtectedRoute>
-                      <Layout>
-                        <Grades />
-                      </Layout>
-                    </ProtectedRoute>
+                    <Layout>
+                      <Grades />
+                    </Layout>
                   } />
                   
+                  {/* Subject */}
                   <Route path="/subject" element={
-                    <ProtectedRoute requiredRole="admin">
-                      <Layout>
-                        <Subject />
-                      </Layout>
-                    </ProtectedRoute>
+                    <Layout>
+                      <Subject />
+                    </Layout>
                   } />
                   
+                  {/* Class Routine */}
                   <Route path="/class-routine" element={
-                    <ProtectedRoute>
-                      <Layout>
-                        <ClassRoutine />
-                      </Layout>
-                    </ProtectedRoute>
+                    <Layout>
+                      <ClassRoutine />
+                    </Layout>
                   } />
                   
+                  {/* Exam */}
                   <Route path="/exam" element={
-                    <ProtectedRoute>
-                      <Layout>
-                        <Exam />
-                      </Layout>
-                    </ProtectedRoute>
+                    <Layout>
+                      <Exam />
+                    </Layout>
                   } />
                   
+                  {/* Notice */}
                   <Route path="/notice" element={
-                    <ProtectedRoute>
-                      <Layout>
-                        <Notice />
-                      </Layout>
-                    </ProtectedRoute>
+                    <Layout>
+                      <Notice />
+                    </Layout>
                   } />
                   
+                  {/* Message */}
                   <Route path="/message" element={
-                    <ProtectedRoute>
-                      <Layout>
-                        <Message />
-                      </Layout>
-                    </ProtectedRoute>
+                    <Layout>
+                      <Message />
+                    </Layout>
                   } />
                   
+                  {/* UI Elements */}
                   <Route path="/ui-elements" element={
-                    <ProtectedRoute requiredRole="admin">
-                      <Layout>
-                        <UIElements />
-                      </Layout>
-                    </ProtectedRoute>
-                  } />
-                  
-                  {/* Student Routes */}
-                  <Route path="/student-dashboard" element={
-                    <ProtectedRoute requiredRole="student">
-                      <Layout>
-                        <Dashboard />
-                      </Layout>
-                    </ProtectedRoute>
-                  } />
-                  
-                  {/* Lecturer Routes */}
-                  <Route path="/lecturer-dashboard" element={
-                    <ProtectedRoute requiredRole="lecturer">
-                      <Layout>
-                        <Dashboard />
-                      </Layout>
-                    </ProtectedRoute>
+                    <Layout>
+                      <UIElements />
+                    </Layout>
                   } />
                   
                   {/* 404 */}

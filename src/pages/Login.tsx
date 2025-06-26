@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -17,7 +18,7 @@ const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
-  const { signIn } = useAuth();
+  const { login } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -34,10 +35,8 @@ const Login = () => {
     }
     
     try {
-      const { error } = await signIn(username, password);
-      if (!error) {
-        navigate('/');
-      }
+      await login(username, password);
+      navigate('/');
     } catch (error) {
       toast({
         title: "Authentication failed",
