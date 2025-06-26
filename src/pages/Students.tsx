@@ -37,6 +37,14 @@ const Students = () => {
         <div className="flex flex-col md:flex-row gap-3">
           <Input 
             type="text" 
+            placeholder="Search by name..." 
+            className="w-full md:w-48"
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)} 
+          />
+          
+          <Input 
+            type="text" 
             placeholder="ID/Type here..." 
             className="w-full md:w-48"
             value={searchRoll}
@@ -106,7 +114,7 @@ const Students = () => {
                 </TableRow>
               ) : (
                 filteredStudents.map((student, index) => {
-                  // Find classroom for the student
+                  // Find classroom for the student using classroomId
                   const classroom = classrooms.find(c => c.id === student.classroomId);
                   const classroomName = classroom?.name || 'Unknown';
                   
