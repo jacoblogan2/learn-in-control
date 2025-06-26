@@ -12,6 +12,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 // Pages
 import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
+import SignUp from "./pages/SignUp";
 import Dashboard from "./pages/Dashboard";
 import Students from "./pages/Students";
 import StudentDetails from "./pages/StudentDetails";
@@ -65,6 +66,7 @@ const App = () => {
                 <Routes>
                   <Route path="/welcome" element={<LandingPage />} />
                   <Route path="/login" element={<Login />} />
+                  <Route path="/signup" element={<SignUp />} />
                   
                   {/* Dashboard */}
                   <Route path="/" element={

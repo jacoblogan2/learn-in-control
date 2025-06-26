@@ -15,34 +15,31 @@ import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "../contexts/AuthContext";
 
 const Login = () => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
-  const { login } = useAuth();
+  const { login, isLoading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    if (!username || !password) {
+    if (!email || !password) {
       toast({
         title: "Error",
-        description: "Please enter both username and password.",
+        description: "Please enter both email and password.",
         variant: "destructive",
       });
       return;
     }
     
     try {
-      await login(username, password);
+      await login(email, password);
       navigate('/');
     } catch (error) {
-      toast({
-        title: "Authentication failed",
-        description: "Invalid username or password. Please try again.",
-        variant: "destructive",
-      });
+      // Error handling is done in the AuthContext
+      console.error('Login error:', error);
     }
   };
 
@@ -61,15 +58,16 @@ const Login = () => {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="username" className="text-sm font-medium">
-                Username
+              <label htmlFor="email" className="text-sm font-medium">
+                Email
               </label>
               <Input
-                id="username"
-                type="text"
-                placeholder="Enter your username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -90,6 +88,7 @@ const Login = () => {
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
               />
             </div>
             <div className="flex items-center space-x-2">
@@ -99,21 +98,22 @@ const Login = () => {
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
                 className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                disabled={isLoading}
               />
               <label htmlFor="remember-me" className="text-sm text-gray-900">
                 Remember me
               </label>
             </div>
-            <Button type="submit" className="w-full">
-              Sign In
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? 'Signing In...' : 'Sign In'}
             </Button>
           </form>
         </CardContent>
         <CardFooter className="flex flex-col justify-center space-y-2 text-center">
           <p className="text-sm text-muted-foreground">
-            Don't have a school yet?{" "}
-            <Link to="/welcome" className="text-primary hover:underline">
-              Add Your School
+            Don't have an account?{" "}
+            <Link to="/signup" className="text-primary hover:underline">
+              Sign Up
             </Link>
           </p>
           <p className="text-xs text-muted-foreground">
