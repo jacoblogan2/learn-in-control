@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
@@ -41,18 +41,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   
-  // Use refs to track previous values and prevent unnecessary updates
-  const prevUserRef = useRef<User | null>(null);
-  const prevSessionRef = useRef<Session | null>(null);
-  const authListenerRef = useRef<any>(null);
-  const mountedRef = useRef(true);
+  // Use ref to prevent multiple auth setup
+  const authInitialized = useRef(false);
 
   console.log('AuthProvider render - isLoading:', isLoading, 'user:', !!user, 'profile:', !!profile);
 
-  // Memoized profile fetch function
-  const fetchUserProfile = useCallback(async (userId: string) => {
-    if (!mountedRef.current) return;
-    
+  // Fetch user profile function
+  const fetchUserProfile = async (userId: string) => {
     try {
       console.log('Fetching profile for user:', userId);
       const { data: profileData, error } = await supabase
@@ -63,119 +58,79 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error('Error fetching profile:', error);
-        if (mountedRef.current) {
-          setProfile(null);
-        }
+        setProfile(null);
       } else {
         console.log('Profile fetched successfully:', profileData);
-        if (mountedRef.current) {
-          setProfile(profileData);
-        }
+        setProfile(profileData);
       }
     } catch (error) {
       console.error('Error in profile fetch:', error);
-      if (mountedRef.current) {
-        setProfile(null);
-      }
+      setProfile(null);
     }
-  }, []);
+  };
 
-  // Helper function to safely update user state only if changed
-  const updateUserState = useCallback((newUser: User | null, newSession: Session | null) => {
-    if (!mountedRef.current) return;
-
-    console.log('updateUserState called with user:', !!newUser, 'session:', !!newSession);
-
-    // Only update user if it actually changed
-    const userChanged = JSON.stringify(prevUserRef.current) !== JSON.stringify(newUser);
-    const sessionChanged = JSON.stringify(prevSessionRef.current) !== JSON.stringify(newSession);
-
-    if (sessionChanged) {
-      console.log('Session changed, updating state');
-      prevSessionRef.current = newSession;
-      setSession(newSession);
-    }
-
-    if (userChanged) {
-      console.log('User changed, updating state');
-      prevUserRef.current = newUser;
-      setUser(newUser);
-
-      // Fetch profile only when user actually changes
-      if (newUser) {
-        fetchUserProfile(newUser.id);
-      } else {
-        setProfile(null);
-      }
-    }
-
-    setIsLoading(false);
-  }, [fetchUserProfile]);
-
-  // Setup auth listener only once
+  // Setup auth only once
   useEffect(() => {
-    console.log('Setting up auth - useEffect triggered');
-    
-    if (authListenerRef.current) {
-      console.log('Auth listener already exists, skipping setup');
+    if (authInitialized.current) {
+      console.log('Auth already initialized, skipping');
       return;
     }
 
-    mountedRef.current = true;
+    console.log('Initializing auth for the first time');
+    authInitialized.current = true;
 
     // Set up auth state listener
-    console.log('Creating new auth state listener');
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, 'session exists:', !!session);
       
-      if (!mountedRef.current) {
-        console.log('Component unmounted, ignoring auth state change');
-        return;
+      setSession(session);
+      setUser(session?.user ?? null);
+
+      if (session?.user) {
+        // Fetch profile when user signs in
+        await fetchUserProfile(session.user.id);
+      } else {
+        setProfile(null);
       }
 
-      updateUserState(session?.user ?? null, session);
+      setIsLoading(false);
     });
 
-    authListenerRef.current = subscription;
-
-    // Get initial session only once
-    const initializeAuth = async () => {
+    // Get initial session
+    const getInitialSession = async () => {
       try {
         console.log('Getting initial session');
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error('Error getting initial session:', error);
-          if (mountedRef.current) {
-            setIsLoading(false);
-          }
+          setIsLoading(false);
           return;
         }
 
         console.log('Initial session retrieved:', !!session);
-        if (mountedRef.current) {
-          updateUserState(session?.user ?? null, session);
+        setSession(session);
+        setUser(session?.user ?? null);
+
+        if (session?.user) {
+          await fetchUserProfile(session.user.id);
         }
+
+        setIsLoading(false);
       } catch (error) {
-        console.error('Error in initializeAuth:', error);
-        if (mountedRef.current) {
-          setIsLoading(false);
-        }
+        console.error('Error in getInitialSession:', error);
+        setIsLoading(false);
       }
     };
 
-    initializeAuth();
+    getInitialSession();
 
     // Cleanup function
     return () => {
-      console.log('Cleaning up auth context');
-      mountedRef.current = false;
-      if (authListenerRef.current) {
-        authListenerRef.current.unsubscribe();
-        authListenerRef.current = null;
-      }
+      console.log('Cleaning up auth subscription');
+      subscription.unsubscribe();
     };
-  }, []); // Empty dependency array - this should only run once
+  }, []); // Empty dependency array - only run once
 
   const signIn = async (email: string, password: string) => {
     try {

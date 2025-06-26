@@ -21,9 +21,11 @@ const Index = () => {
   }
 
   if (!user) {
+    console.log('No user found, redirecting to auth');
     return <Navigate to="/auth" replace />;
   }
 
+  console.log('User authenticated, rendering dashboard');
   return (
     <Layout>
       <Dashboard />
