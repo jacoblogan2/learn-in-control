@@ -70,7 +70,7 @@ export interface User {
   firstName: string;
   lastName: string;
   email: string;
-  role: 'admin' | 'teacher' | 'student' | 'parent';
+  role: 'admin' | 'lecturer' | 'student';
 }
 
 export interface Notice {
