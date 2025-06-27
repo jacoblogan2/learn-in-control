@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { 
   Users, GraduationCap, Award, BookOpen, CreditCard, 
@@ -31,8 +32,8 @@ const Dashboard = () => {
     { title: 'Reports', count: '15', icon: <LucideFileText size={24} />, color: 'bg-red-100 text-red-600' },
   ];
 
-  // Stats for teacher dashboard
-  const teacherStats = [
+  // Stats for lecturer dashboard
+  const lecturerStats = [
     { title: 'My Students', count: '45', icon: <GraduationCap size={24} />, color: 'bg-blue-100 text-blue-600' },
     { title: 'My Classes', count: '5', icon: <Layers size={24} />, color: 'bg-purple-100 text-purple-600' },
     { title: 'Subjects', count: '3', icon: <Book size={24} />, color: 'bg-indigo-100 text-indigo-600' },
@@ -50,8 +51,8 @@ const Dashboard = () => {
   // Select stats based on user role
   const stats = currentUser?.role === 'admin' 
     ? adminStats 
-    : currentUser?.role === 'teacher' 
-      ? teacherStats 
+    : currentUser?.role === 'lecturer' 
+      ? lecturerStats 
       : studentStats;
 
   return (
@@ -197,7 +198,7 @@ const Dashboard = () => {
         </div>
       )}
       
-      {currentUser?.role === 'teacher' && (
+      {currentUser?.role === 'lecturer' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
