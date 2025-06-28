@@ -82,6 +82,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const isValidRole = (role: string): role is 'admin' | 'lecturer' | 'student' => {
+    return ['admin', 'lecturer', 'student'].includes(role);
+  };
+
   const getRoleBasedRedirectPath = (role: 'admin' | 'lecturer' | 'student'): string => {
     switch (role) {
       case 'admin':
@@ -120,7 +124,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .eq('user_id', data.user.id)
           .single();
 
-        const redirectTo = profile ? getRoleBasedRedirectPath(profile.role) : '/';
+        let redirectTo = '/';
+        if (profile && isValidRole(profile.role)) {
+          redirectTo = getRoleBasedRedirectPath(profile.role);
+        }
         
         toast({
           title: 'Login successful',
