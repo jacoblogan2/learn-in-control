@@ -1,28 +1,15 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User } from '../types';
-import { useToast } from '@/components/ui/use-toast';
+import React, { createContext, useContext, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { User as SupabaseUser } from '@supabase/supabase-js';
-
-interface AuthContextType {
-  currentUser: User | null;
-  login: (email: string, password: string) => Promise<{ redirectTo?: string }>;
-  logout: () => void;
-  signUp: (email: string, password: string, userData: {
-    firstName: string;
-    lastName: string;
-    role: 'admin' | 'lecturer' | 'student';
-  }) => Promise<void>;
-  isLoading: boolean;
-}
+import { AuthContextType } from '../types/auth';
+import { useUserProfile } from '../hooks/useUserProfile';
+import { useAuthOperations } from '../hooks/useAuthOperations';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
+  const { currentUser, setCurrentUser, fetchUserProfile } = useUserProfile();
+  const { login, signUp, logout: logoutOperation, isLoading } = useAuthOperations();
 
   useEffect(() => {
     // Get initial session
@@ -31,7 +18,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (session?.user) {
         await fetchUserProfile(session.user);
       }
-      setIsLoading(false);
     };
 
     getInitialSession();
@@ -45,167 +31,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         setCurrentUser(null);
       }
-      setIsLoading(false);
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [fetchUserProfile, setCurrentUser]);
 
-  const fetchUserProfile = async (user: SupabaseUser) => {
-    try {
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (error) {
-        console.error('Error fetching profile:', error);
-        return;
-      }
-
-      if (profile) {
-        const userData: User = {
-          id: profile.id,
-          username: profile.email.split('@')[0], // Use email prefix as username
-          firstName: profile.first_name || '',
-          lastName: profile.last_name || '',
-          email: profile.email,
-          role: profile.role as 'admin' | 'lecturer' | 'student'
-        };
-        setCurrentUser(userData);
-      }
-    } catch (error) {
-      console.error('Failed to fetch user profile:', error);
-    }
-  };
-
-  const isValidRole = (role: string): role is 'admin' | 'lecturer' | 'student' => {
-    return ['admin', 'lecturer', 'student'].includes(role);
-  };
-
-  const getRoleBasedRedirectPath = (role: 'admin' | 'lecturer' | 'student'): string => {
-    switch (role) {
-      case 'admin':
-        return '/admin/dashboard';
-      case 'lecturer':
-        return '/lecturer/dashboard';
-      case 'student':
-        return '/student/dashboard';
-      default:
-        return '/';
-    }
-  };
-
-  const login = async (email: string, password: string): Promise<{ redirectTo?: string }> => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      if (error) {
-        toast({
-          title: 'Login failed',
-          description: error.message,
-          variant: 'destructive'
-        });
-        throw error;
-      }
-
-      if (data.user) {
-        // Fetch the user profile to get the role
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('user_id', data.user.id)
-          .single();
-
-        let redirectTo = '/';
-        if (profile && isValidRole(profile.role)) {
-          redirectTo = getRoleBasedRedirectPath(profile.role);
-        }
-        
-        toast({
-          title: 'Login successful',
-          description: 'Welcome back!',
-        });
-
-        return { redirectTo };
-      }
-
-      return {};
-    } catch (error) {
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const signUp = async (
-    email: string, 
-    password: string, 
-    userData: {
-      firstName: string;
-      lastName: string;
-      role: 'admin' | 'lecturer' | 'student';
-    }
-  ): Promise<void> => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            first_name: userData.firstName,
-            last_name: userData.lastName,
-            role: userData.role
-          }
-        }
-      });
-
-      if (error) {
-        toast({
-          title: 'Sign up failed',
-          description: error.message,
-          variant: 'destructive'
-        });
-        throw error;
-      }
-
-      if (data.user) {
-        toast({
-          title: 'Account created',
-          description: 'Please check your email to verify your account.',
-        });
-      }
-    } catch (error) {
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const logout = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Logout error:', error);
-      }
-      
-      setCurrentUser(null);
-      toast({
-        title: 'Logged out',
-        description: 'You have been successfully logged out',
-      });
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  };
+  const logout = () => logoutOperation(setCurrentUser);
 
   const value = {
     currentUser,
