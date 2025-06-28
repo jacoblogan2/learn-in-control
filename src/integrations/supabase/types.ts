@@ -52,17 +52,68 @@ export type Database = {
             foreignKeyName: "attendance_marked_by_fkey"
             columns: ["marked_by"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "auth.users"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "attendance_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "auth.users"
             referencedColumns: ["id"]
           },
         ]
+      }
+      "auth.users": {
+        Row: {
+          address: string | null
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          language_preference: string | null
+          last_name: string
+          phone: number | null
+          profile_photo_url: string | null
+          registration_number: number | null
+          role: Database["public"]["Enums"]["user_role"]
+          theme_preference: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          email: string
+          first_name: string
+          id?: string
+          language_preference?: string | null
+          last_name: string
+          phone?: number | null
+          profile_photo_url?: string | null
+          registration_number?: number | null
+          role?: Database["public"]["Enums"]["user_role"]
+          theme_preference?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          email?: string
+          first_name?: string
+          id?: string
+          language_preference?: string | null
+          last_name?: string
+          phone?: number | null
+          profile_photo_url?: string | null
+          registration_number?: number | null
+          role?: Database["public"]["Enums"]["user_role"]
+          theme_preference?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       courses: {
         Row: {
@@ -106,7 +157,7 @@ export type Database = {
             foreignKeyName: "courses_lecturer_id_fkey"
             columns: ["lecturer_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "auth.users"
             referencedColumns: ["id"]
           },
         ]
@@ -148,7 +199,7 @@ export type Database = {
             foreignKeyName: "enrollments_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "auth.users"
             referencedColumns: ["id"]
           },
         ]
@@ -199,14 +250,14 @@ export type Database = {
             foreignKeyName: "grades_lecturer_id_fkey"
             columns: ["lecturer_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "auth.users"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "grades_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "auth.users"
             referencedColumns: ["id"]
           },
         ]
@@ -288,7 +339,7 @@ export type Database = {
             foreignKeyName: "invoices_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "auth.users"
             referencedColumns: ["id"]
           },
         ]
@@ -329,14 +380,14 @@ export type Database = {
             foreignKeyName: "messages_receiver_id_fkey"
             columns: ["receiver_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "auth.users"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "messages_sender_id_fkey"
             columns: ["sender_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "auth.users"
             referencedColumns: ["id"]
           },
         ]
@@ -377,7 +428,7 @@ export type Database = {
             foreignKeyName: "notifications_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "auth.users"
             referencedColumns: ["id"]
           },
         ]
@@ -431,58 +482,70 @@ export type Database = {
             foreignKeyName: "payments_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "auth.users"
             referencedColumns: ["id"]
           },
         ]
       }
       profiles: {
         Row: {
-          address: string | null
           created_at: string
           email: string
-          first_name: string
+          first_name: string | null
           id: string
-          language_preference: string | null
-          last_name: string
-          phone: string | null
-          profile_photo_url: string | null
+          last_name: string | null
           registration_number: string | null
-          role: Database["public"]["Enums"]["user_role"]
-          theme_preference: string | null
+          role: string
           updated_at: string
           user_id: string
         }
         Insert: {
-          address?: string | null
           created_at?: string
           email: string
-          first_name: string
+          first_name?: string | null
           id?: string
-          language_preference?: string | null
-          last_name: string
-          phone?: string | null
-          profile_photo_url?: string | null
+          last_name?: string | null
           registration_number?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
-          theme_preference?: string | null
+          role?: string
           updated_at?: string
           user_id: string
         }
         Update: {
-          address?: string | null
           created_at?: string
           email?: string
-          first_name?: string
+          first_name?: string | null
           id?: string
-          language_preference?: string | null
-          last_name?: string
-          phone?: string | null
-          profile_photo_url?: string | null
+          last_name?: string | null
           registration_number?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
-          theme_preference?: string | null
+          role?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      users: {
+        Row: {
+          created_at: string
+          email: string
+          first_name: string | null
+          last_name: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          first_name?: string | null
+          last_name?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          first_name?: string | null
+          last_name?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
           user_id?: string
         }
         Relationships: []

@@ -35,8 +35,13 @@ const Login = () => {
     }
     
     try {
-      await login(email, password);
-      navigate('/');
+      const result = await login(email, password);
+      // Redirect based on user role
+      if (result.redirectTo) {
+        navigate(result.redirectTo);
+      } else {
+        navigate('/');
+      }
     } catch (error) {
       // Error handling is done in the AuthContext
       console.error('Login error:', error);

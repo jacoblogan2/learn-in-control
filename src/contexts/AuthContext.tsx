@@ -7,7 +7,7 @@ import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 interface AuthContextType {
   currentUser: User | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<{ redirectTo?: string }>;
   logout: () => void;
   signUp: (email: string, password: string, userData: {
     firstName: string;
@@ -70,8 +70,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const userData: User = {
           id: profile.id,
           username: profile.email.split('@')[0], // Use email prefix as username
-          firstName: profile.first_name,
-          lastName: profile.last_name,
+          firstName: profile.first_name || '',
+          lastName: profile.last_name || '',
           email: profile.email,
           role: profile.role as 'admin' | 'lecturer' | 'student'
         };
@@ -82,7 +82,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const login = async (email: string, password: string): Promise<void> => {
+  const getRoleBasedRedirectPath = (role: 'admin' | 'lecturer' | 'student'): string => {
+    switch (role) {
+      case 'admin':
+        return '/admin/dashboard';
+      case 'lecturer':
+        return '/lecturer/dashboard';
+      case 'student':
+        return '/student/dashboard';
+      default:
+        return '/';
+    }
+  };
+
+  const login = async (email: string, password: string): Promise<{ redirectTo?: string }> => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -100,11 +113,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (data.user) {
+        // Fetch the user profile to get the role
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('user_id', data.user.id)
+          .single();
+
+        const redirectTo = profile ? getRoleBasedRedirectPath(profile.role) : '/';
+        
         toast({
           title: 'Login successful',
           description: 'Welcome back!',
         });
+
+        return { redirectTo };
       }
+
+      return {};
     } catch (error) {
       throw error;
     } finally {

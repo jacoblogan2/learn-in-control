@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -14,6 +13,9 @@ import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import Dashboard from "./pages/Dashboard";
+import AdminDashboard from "./pages/AdminDashboard";
+import StudentDashboard from "./pages/StudentDashboard";
+import LecturerDashboard from "./pages/LecturerDashboard";
 import Students from "./pages/Students";
 import StudentDetails from "./pages/StudentDetails";
 import AdmitForm from "./pages/AdmitForm";
@@ -67,6 +69,23 @@ const App = () => {
                   <Route path="/welcome" element={<LandingPage />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/signup" element={<SignUp />} />
+                  
+                  {/* Role-specific dashboards */}
+                  <Route path="/admin/dashboard" element={
+                    <Layout>
+                      <AdminDashboard />
+                    </Layout>
+                  } />
+                  <Route path="/student/dashboard" element={
+                    <Layout>
+                      <StudentDashboard />
+                    </Layout>
+                  } />
+                  <Route path="/lecturer/dashboard" element={
+                    <Layout>
+                      <LecturerDashboard />
+                    </Layout>
+                  } />
                   
                   {/* Dashboard */}
                   <Route path="/" element={
