@@ -20,25 +20,12 @@ interface LayoutProviderProps {
 }
 
 export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
-  const { currentUser, logout, isLoading } = useAuth();
+  const { currentUser, logout } = useAuth();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
 
-  console.log('LayoutProvider: Rendering with user:', currentUser?.id, 'isLoading:', isLoading);
-
-  // Show loading state while auth is initializing
-  if (isLoading) {
-    console.log('LayoutProvider: Still loading auth state');
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-          <p className="mt-4 text-lg">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  console.log('LayoutProvider: Rendering with user:', currentUser?.id);
 
   // If not logged in, redirect to login
   if (!currentUser) {

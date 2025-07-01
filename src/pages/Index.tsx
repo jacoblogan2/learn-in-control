@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { useAuth } from "../contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import Dashboard from "./Dashboard";
@@ -7,8 +6,6 @@ import Layout from "../components/Layout";
 
 const Index = () => {
   const { currentUser, isLoading } = useAuth();
-
-  console.log('Index: Rendering with user:', currentUser?.id, 'isLoading:', isLoading);
 
   if (isLoading) {
     return (
