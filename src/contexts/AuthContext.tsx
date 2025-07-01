@@ -13,18 +13,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isInitialized, setIsInitialized] = useState(false);
   const lastUserId = useRef<string | null>(null);
   const isProcessingAuth = useRef(false);
+  const authListenerSet = useRef(false);
 
-  // Prevent multiple concurrent auth operations
-  const safeSetCurrentUser = useCallback((user: any) => {
-    if (!isProcessingAuth.current) {
-      setCurrentUser(user);
-    }
-  }, [setCurrentUser]);
+  console.log('AuthProvider: Rendering with user:', currentUser?.id, 'isLoading:', isLoading, 'isInitialized:', isInitialized);
 
-  useEffect(() => {
-    console.log('AuthProvider: Setting up auth listener');
+  // Memoize the fetch function to prevent dependency cycles
+  const memoizedFetchUserProfile = useCallback(async (user: any) => {
+    if (isProcessingAuth.current || !user) return;
     
-    // Set up auth state listener first
+    console.log('AuthProvider: Fetching profile for user:', user.id);
+    try {
+      await fetchUserProfile(user);
+    } catch (error) {
+      console.error('AuthProvider: Error fetching profile:', error);
+    }
+  }, [fetchUserProfile]);
+
+  // Set up auth listener only once
+  useEffect(() => {
+    if (authListenerSet.current) {
+      console.log('AuthProvider: Auth listener already set, skipping');
+      return;
+    }
+
+    console.log('AuthProvider: Setting up auth listener (one time)');
+    authListenerSet.current = true;
+    
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('AuthProvider: Auth state changed:', event, session?.user?.id);
       
@@ -42,20 +56,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (lastUserId.current !== session.user.id) {
             console.log('AuthProvider: User changed, fetching new profile');
             lastUserId.current = session.user.id;
-            await fetchUserProfile(session.user);
+            await memoizedFetchUserProfile(session.user);
           } else {
             console.log('AuthProvider: Same user, skipping profile fetch');
           }
         } else {
           console.log('AuthProvider: No session, clearing user');
           lastUserId.current = null;
-          safeSetCurrentUser(null);
+          setCurrentUser(null);
         }
       } catch (error) {
         console.error('AuthProvider: Error handling auth change:', error);
       } finally {
         isProcessingAuth.current = false;
         if (!isInitialized) {
+          console.log('AuthProvider: Setting initialized to true');
           setIsInitialized(true);
         }
       }
@@ -71,16 +86,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log('AuthProvider: Found initial session for user:', session.user.id);
           if (lastUserId.current !== session.user.id) {
             lastUserId.current = session.user.id;
-            await fetchUserProfile(session.user);
+            await memoizedFetchUserProfile(session.user);
           }
         } else {
           console.log('AuthProvider: No initial session found');
-          safeSetCurrentUser(null);
+          setCurrentUser(null);
         }
       } catch (error) {
         console.error('AuthProvider: Error getting initial session:', error);
       } finally {
-        setIsInitialized(true);
+        if (!isInitialized) {
+          console.log('AuthProvider: Setting initialized to true (initial session)');
+          setIsInitialized(true);
+        }
       }
     };
 
@@ -89,8 +107,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       console.log('AuthProvider: Cleaning up auth listener');
       subscription.unsubscribe();
+      authListenerSet.current = false;
     };
-  }, [fetchUserProfile, safeSetCurrentUser]);
+  }, []); // Empty dependency array - this should only run once
 
   const logout = useCallback(() => {
     console.log('AuthProvider: Logging out');
