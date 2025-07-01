@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Sidebar } from './Sidebar';
 import { MobileSidebar } from './MobileSidebar';
 
@@ -10,12 +10,14 @@ interface SidebarContainerProps {
   onToggleSidebar: () => void;
 }
 
-export const SidebarContainer: React.FC<SidebarContainerProps> = ({
+export const SidebarContainer: React.FC<SidebarContainerProps> = memo(({
   currentUser,
   isMobile,
   sidebarOpen,
   onToggleSidebar,
 }) => {
+  console.log('SidebarContainer: Rendering for user:', currentUser?.id, 'isMobile:', isMobile);
+
   return (
     <>
       {isMobile ? (
@@ -29,4 +31,6 @@ export const SidebarContainer: React.FC<SidebarContainerProps> = ({
       )}
     </>
   );
-};
+});
+
+SidebarContainer.displayName = 'SidebarContainer';
