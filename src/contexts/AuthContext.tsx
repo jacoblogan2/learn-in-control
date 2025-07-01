@@ -1,218 +1,113 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User } from '../types';
-import { useToast } from '@/components/ui/use-toast';
+import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { User as SupabaseUser } from '@supabase/supabase-js';
-
-interface AuthContextType {
-  currentUser: User | null;
-  login: (email: string, password: string) => Promise<{ redirectTo?: string }>;
-  logout: () => void;
-  signUp: (email: string, password: string, userData: {
-    firstName: string;
-    lastName: string;
-    role: 'admin' | 'lecturer' | 'student';
-  }) => Promise<void>;
-  isLoading: boolean;
-}
+import { AuthContextType } from '../types/auth';
+import { useUserProfile } from '../hooks/useUserProfile';
+import { useAuthOperations } from '../hooks/useAuthOperations';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
+  const { currentUser, setCurrentUser, fetchUserProfile } = useUserProfile();
+  const { login, signUp, logout: logoutOperation, isLoading } = useAuthOperations();
+  const [isInitialized, setIsInitialized] = useState(false);
+  const lastUserId = useRef<string | null>(null);
+  const isProcessingAuth = useRef(false);
+
+  // Prevent multiple concurrent auth operations
+  const safeSetCurrentUser = useCallback((user: any) => {
+    if (!isProcessingAuth.current) {
+      setCurrentUser(user);
+    }
+  }, [setCurrentUser]);
 
   useEffect(() => {
-    // Get initial session
-    const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        await fetchUserProfile(session.user);
+    console.log('AuthProvider: Setting up auth listener');
+    
+    // Set up auth state listener first
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('AuthProvider: Auth state changed:', event, session?.user?.id);
+      
+      // Prevent concurrent processing
+      if (isProcessingAuth.current) {
+        console.log('AuthProvider: Already processing auth change, skipping');
+        return;
       }
-      setIsLoading(false);
+
+      isProcessingAuth.current = true;
+
+      try {
+        if (session?.user) {
+          // Only fetch profile if the user ID actually changed
+          if (lastUserId.current !== session.user.id) {
+            console.log('AuthProvider: User changed, fetching new profile');
+            lastUserId.current = session.user.id;
+            await fetchUserProfile(session.user);
+          } else {
+            console.log('AuthProvider: Same user, skipping profile fetch');
+          }
+        } else {
+          console.log('AuthProvider: No session, clearing user');
+          lastUserId.current = null;
+          safeSetCurrentUser(null);
+        }
+      } catch (error) {
+        console.error('AuthProvider: Error handling auth change:', error);
+      } finally {
+        isProcessingAuth.current = false;
+        if (!isInitialized) {
+          setIsInitialized(true);
+        }
+      }
+    });
+
+    // Get initial session after setting up listener
+    const getInitialSession = async () => {
+      try {
+        console.log('AuthProvider: Getting initial session');
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          console.log('AuthProvider: Found initial session for user:', session.user.id);
+          if (lastUserId.current !== session.user.id) {
+            lastUserId.current = session.user.id;
+            await fetchUserProfile(session.user);
+          }
+        } else {
+          console.log('AuthProvider: No initial session found');
+          safeSetCurrentUser(null);
+        }
+      } catch (error) {
+        console.error('AuthProvider: Error getting initial session:', error);
+      } finally {
+        setIsInitialized(true);
+      }
     };
 
     getInitialSession();
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session?.user?.id);
-      
-      if (session?.user) {
-        await fetchUserProfile(session.user);
-      } else {
-        setCurrentUser(null);
-      }
-      setIsLoading(false);
-    });
-
     return () => {
+      console.log('AuthProvider: Cleaning up auth listener');
       subscription.unsubscribe();
     };
-  }, []);
+  }, [fetchUserProfile, safeSetCurrentUser]);
 
-  const fetchUserProfile = async (user: SupabaseUser) => {
-    try {
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (error) {
-        console.error('Error fetching profile:', error);
-        return;
-      }
-
-      if (profile) {
-        const userData: User = {
-          id: profile.id,
-          username: profile.email.split('@')[0], // Use email prefix as username
-          firstName: profile.first_name || '',
-          lastName: profile.last_name || '',
-          email: profile.email,
-          role: profile.role as 'admin' | 'lecturer' | 'student'
-        };
-        setCurrentUser(userData);
-      }
-    } catch (error) {
-      console.error('Failed to fetch user profile:', error);
-    }
-  };
-
-  const isValidRole = (role: string): role is 'admin' | 'lecturer' | 'student' => {
-    return ['admin', 'lecturer', 'student'].includes(role);
-  };
-
-  const getRoleBasedRedirectPath = (role: 'admin' | 'lecturer' | 'student'): string => {
-    switch (role) {
-      case 'admin':
-        return '/admin/dashboard';
-      case 'lecturer':
-        return '/lecturer/dashboard';
-      case 'student':
-        return '/student/dashboard';
-      default:
-        return '/';
-    }
-  };
-
-  const login = async (email: string, password: string): Promise<{ redirectTo?: string }> => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      if (error) {
-        toast({
-          title: 'Login failed',
-          description: error.message,
-          variant: 'destructive'
-        });
-        throw error;
-      }
-
-      if (data.user) {
-        // Fetch the user profile to get the role
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('user_id', data.user.id)
-          .single();
-
-        let redirectTo = '/';
-        if (profile && isValidRole(profile.role)) {
-          redirectTo = getRoleBasedRedirectPath(profile.role);
-        }
-        
-        toast({
-          title: 'Login successful',
-          description: 'Welcome back!',
-        });
-
-        return { redirectTo };
-      }
-
-      return {};
-    } catch (error) {
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const signUp = async (
-    email: string, 
-    password: string, 
-    userData: {
-      firstName: string;
-      lastName: string;
-      role: 'admin' | 'lecturer' | 'student';
-    }
-  ): Promise<void> => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            first_name: userData.firstName,
-            last_name: userData.lastName,
-            role: userData.role
-          }
-        }
-      });
-
-      if (error) {
-        toast({
-          title: 'Sign up failed',
-          description: error.message,
-          variant: 'destructive'
-        });
-        throw error;
-      }
-
-      if (data.user) {
-        toast({
-          title: 'Account created',
-          description: 'Please check your email to verify your account.',
-        });
-      }
-    } catch (error) {
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const logout = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Logout error:', error);
-      }
-      
-      setCurrentUser(null);
-      toast({
-        title: 'Logged out',
-        description: 'You have been successfully logged out',
-      });
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  };
+  const logout = useCallback(() => {
+    console.log('AuthProvider: Logging out');
+    lastUserId.current = null;
+    isProcessingAuth.current = true;
+    logoutOperation(setCurrentUser);
+    setTimeout(() => {
+      isProcessingAuth.current = false;
+    }, 100);
+  }, [logoutOperation, setCurrentUser]);
 
   const value = {
     currentUser,
     login,
     logout,
     signUp,
-    isLoading,
+    isLoading: isLoading || !isInitialized,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
