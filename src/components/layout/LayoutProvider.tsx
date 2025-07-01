@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -25,31 +25,47 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
 
+  console.log('LayoutProvider: Rendering with user:', currentUser?.id);
+
   // If not logged in, redirect to login
   if (!currentUser) {
+    console.log('LayoutProvider: No user, redirecting to login');
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  const navItems = getNavigationItems(currentUser.role);
-  const filteredNavItems = navItems.filter(item => 
-    item.visibleTo.includes(currentUser.role)
-  );
+  // Memoize navigation items to prevent recalculation on every render
+  const navItems = useMemo(() => {
+    console.log('LayoutProvider: Calculating navigation items for role:', currentUser.role);
+    return getNavigationItems(currentUser.role);
+  }, [currentUser.role]);
 
-  const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
+  const filteredNavItems = useMemo(() => {
+    console.log('LayoutProvider: Filtering navigation items');
+    return navItems.filter(item => 
+      item.visibleTo.includes(currentUser.role)
+    );
+  }, [navItems, currentUser.role]);
+
+  const toggleSidebar = useCallback(() => {
+    console.log('LayoutProvider: Toggling sidebar');
+    setSidebarOpen(prev => !prev);
+  }, []);
+
+  const memoizedProps = useMemo(() => ({
+    currentUser,
+    location,
+    sidebarOpen,
+    setSidebarOpen,
+    isMobile,
+    navItems,
+    filteredNavItems,
+    toggleSidebar,
+    logout,
+  }), [currentUser, location, sidebarOpen, isMobile, navItems, filteredNavItems, toggleSidebar, logout]);
 
   return (
     <>
-      {children({
-        currentUser,
-        location,
-        sidebarOpen,
-        setSidebarOpen,
-        isMobile,
-        navItems,
-        filteredNavItems,
-        toggleSidebar,
-        logout,
-      })}
+      {children(memoizedProps)}
     </>
   );
 };
