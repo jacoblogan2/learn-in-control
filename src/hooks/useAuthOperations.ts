@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { SignUpData } from '../types/auth';
@@ -9,7 +9,7 @@ export const useAuthOperations = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const login = async (email: string, password: string): Promise<{ redirectTo?: string }> => {
+  const login = useCallback(async (email: string, password: string): Promise<{ redirectTo?: string }> => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -53,9 +53,9 @@ export const useAuthOperations = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
 
-  const signUp = async (
+  const signUp = useCallback(async (
     email: string, 
     password: string, 
     userData: SignUpData
@@ -94,9 +94,9 @@ export const useAuthOperations = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
 
-  const logout = async (setCurrentUser: (user: any) => void) => {
+  const logout = useCallback(async (setCurrentUser: (user: any) => void) => {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) {
@@ -111,7 +111,7 @@ export const useAuthOperations = () => {
     } catch (error) {
       console.error('Logout error:', error);
     }
-  };
+  }, [toast]);
 
   return {
     login,

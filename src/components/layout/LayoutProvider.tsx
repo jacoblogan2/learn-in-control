@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -30,26 +30,31 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  const navItems = getNavigationItems(currentUser.role);
-  const filteredNavItems = navItems.filter(item => 
-    item.visibleTo.includes(currentUser.role)
+  // Memoize navigation items to prevent recalculation on every render
+  const navItems = useMemo(() => getNavigationItems(currentUser.role), [currentUser.role]);
+  const filteredNavItems = useMemo(() => 
+    navItems.filter(item => item.visibleTo.includes(currentUser.role)), 
+    [navItems, currentUser.role]
   );
 
-  const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
+  const toggleSidebar = useCallback(() => setSidebarOpen(prev => !prev), []);
+
+  // Memoize the props object to prevent unnecessary re-renders
+  const layoutProps = useMemo(() => ({
+    currentUser,
+    location,
+    sidebarOpen,
+    setSidebarOpen,
+    isMobile,
+    navItems,
+    filteredNavItems,
+    toggleSidebar,
+    logout,
+  }), [currentUser, location, sidebarOpen, isMobile, navItems, filteredNavItems, toggleSidebar, logout]);
 
   return (
     <>
-      {children({
-        currentUser,
-        location,
-        sidebarOpen,
-        setSidebarOpen,
-        isMobile,
-        navItems,
-        filteredNavItems,
-        toggleSidebar,
-        logout,
-      })}
+      {children(layoutProps)}
     </>
   );
 };

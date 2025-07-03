@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { User } from '../types/auth';
@@ -7,7 +7,7 @@ import { User } from '../types/auth';
 export const useUserProfile = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
-  const fetchUserProfile = async (user: SupabaseUser) => {
+  const fetchUserProfile = useCallback(async (user: SupabaseUser) => {
     try {
       const { data: profile, error } = await supabase
         .from('profiles')
@@ -34,7 +34,7 @@ export const useUserProfile = () => {
     } catch (error) {
       console.error('Failed to fetch user profile:', error);
     }
-  };
+  }, []);
 
   return {
     currentUser,
