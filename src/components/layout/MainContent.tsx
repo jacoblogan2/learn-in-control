@@ -1,5 +1,5 @@
 
-import React, { memo } from 'react';
+import React from 'react';
 import { Header } from './Header';
 import { Breadcrumb } from './Breadcrumb';
 
@@ -12,7 +12,7 @@ interface MainContentProps {
   children: React.ReactNode;
 }
 
-export const MainContent: React.FC<MainContentProps> = memo(({
+export const MainContent: React.FC<MainContentProps> = ({
   currentUser,
   isMobile,
   onToggleSidebar,
@@ -20,8 +20,6 @@ export const MainContent: React.FC<MainContentProps> = memo(({
   filteredNavItems,
   children,
 }) => {
-  console.log('MainContent: Rendering for user:', currentUser?.id);
-
   return (
     <main className="flex-1 flex flex-col">
       <Header 
@@ -36,6 +34,4 @@ export const MainContent: React.FC<MainContentProps> = memo(({
       <div className="p-6 bg-gray-100 flex-grow">{children}</div>
     </main>
   );
-});
-
-MainContent.displayName = 'MainContent';
+};
