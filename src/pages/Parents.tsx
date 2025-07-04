@@ -1,52 +1,70 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Link } from 'react-router-dom';
-import { Edit, Trash2, Eye, Search } from 'lucide-react';
+import { Edit, Trash2, Eye, Search, Plus } from 'lucide-react';
+import { AdminDataService } from '@/services/adminDataService';
+import { useToast } from '@/hooks/use-toast';
 
 const Parents = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchMobile, setSearchMobile] = useState('');
+  const [parents, setParents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
-  // Generate mock data for parents
-  const mockParents = Array(20).fill(null).map((_, index) => {
-    const id = (2901 + index).toString();
-    const names = [
-      'Richi Rozario', 'Kazi Fahim', 'Maccullum', 'Jack Sparrow',
-      'Lisa Alam', 'Bushed Kabirun', 'Kantaz Appoy'
-    ];
-    const name = names[index % names.length];
-    const gender = index % 3 === 0 ? 'Male' : 'Female';
-    const occupations = [
-      'House Wife', 'Businessman', 'Banker', 'Account',
-      'Architecture', 'Engineer', 'Programmer', 'Software'
-    ];
-    const occupation = occupations[index % occupations.length];
-    const addresses = [
-      'TA-110, North Sydney', '59 street, North Sydney',
-      '110 street, third island', '58 street, mecshew Sydney',
-      '10 street, hibird island', '123 street, mecshew Sydney'
-    ];
-    const address = addresses[index % addresses.length];
-    const phone = '+ 8812 00 5098';
-    const email = `${name.toLowerCase().replace(/\s/g, '')}@gmail.com`;
+  // Fetch parents from database
+  useEffect(() => {
+    fetchParents();
+  }, []);
 
-    return {
-      id,
-      name,
-      gender,
-      occupation,
-      address,
-      phone,
-      email,
-      photoUrl: `https://i.pravatar.cc/150?u=parent${index}`
-    };
-  });
+  const fetchParents = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await AdminDataService.getParents();
+      if (error) {
+        toast({
+          title: "Error",
+          description: error,
+          variant: "destructive"
+        });
+      } else {
+        setParents(data || []);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load parents",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm('Are you sure you want to delete this parent?')) {
+      const { error } = await AdminDataService.deleteParent(id);
+      if (error) {
+        toast({
+          title: "Error",
+          description: error,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Parent deleted successfully"
+        });
+        fetchParents(); // Refresh the list
+      }
+    }
+  };
 
   // Filter parents based on search criteria
-  const filteredParents = mockParents.filter(parent => {
+  const filteredParents = parents.filter(parent => {
     const nameMatch = parent.name.toLowerCase().includes(searchTerm.toLowerCase());
     const mobileMatch = searchMobile ? parent.phone.includes(searchMobile) : true;
     
@@ -87,16 +105,12 @@ const Parents = () => {
           <h2 className="font-semibold">All Parents</h2>
           
           <div className="flex items-center space-x-2">
-            <Button variant="outline" size="icon">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" clipRule="evenodd" />
-              </svg>
-            </Button>
-            <Button variant="outline" size="icon">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
-              </svg>
-            </Button>
+            <Link to="/add-parent">
+              <Button variant="default" className="bg-yellow-500 hover:bg-yellow-600 flex items-center gap-2">
+                <Plus size={16} />
+                Add Parent
+              </Button>
+            </Link>
           </div>
         </div>
         
@@ -119,42 +133,61 @@ const Parents = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredParents.map((parent) => (
-                <TableRow key={parent.id}>
-                  <TableCell>
-                    <input type="checkbox" className="h-4 w-4" />
-                  </TableCell>
-                  <TableCell>#{parent.id}</TableCell>
-                  <TableCell>
-                    <div className="w-8 h-8 rounded-full bg-blue-100 overflow-hidden">
-                      <img 
-                        src={parent.photoUrl} 
-                        alt={parent.name} 
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  </TableCell>
-                  <TableCell>{parent.name}</TableCell>
-                  <TableCell>{parent.gender}</TableCell>
-                  <TableCell>{parent.occupation}</TableCell>
-                  <TableCell>{parent.address}</TableCell>
-                  <TableCell>{parent.phone}</TableCell>
-                  <TableCell>{parent.email}</TableCell>
-                  <TableCell>
-                    <div className="flex justify-end items-center space-x-2">
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600">
-                        <Eye size={16} />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-600">
-                        <Edit size={16} />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-red-600">
-                        <Trash2 size={16} />
-                      </Button>
-                    </div>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={10} className="text-center py-8">
+                    Loading parents...
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : filteredParents.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={10} className="text-center py-8">
+                    No parents found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredParents.map((parent) => (
+                  <TableRow key={parent.id}>
+                    <TableCell>
+                      <input type="checkbox" className="h-4 w-4" />
+                    </TableCell>
+                    <TableCell>#{parent.id.slice(-8)}</TableCell>
+                    <TableCell>
+                      <div className="w-8 h-8 rounded-full bg-blue-100 overflow-hidden">
+                        <img 
+                          src={`https://i.pravatar.cc/150?u=${parent.id}`} 
+                          alt={parent.name} 
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    </TableCell>
+                    <TableCell>{parent.name}</TableCell>
+                    <TableCell>{parent.gender || 'N/A'}</TableCell>
+                    <TableCell>{parent.occupation || 'N/A'}</TableCell>
+                    <TableCell>{parent.address || 'N/A'}</TableCell>
+                    <TableCell>{parent.phone}</TableCell>
+                    <TableCell>{parent.email}</TableCell>
+                    <TableCell>
+                      <div className="flex justify-end items-center space-x-2">
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600">
+                          <Eye size={16} />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-600">
+                          <Edit size={16} />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-7 w-7 text-red-600"
+                          onClick={() => handleDelete(parent.id)}
+                        >
+                          <Trash2 size={16} />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </div>

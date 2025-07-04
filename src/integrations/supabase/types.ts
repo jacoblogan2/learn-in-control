@@ -9,6 +9,51 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      accounts: {
+        Row: {
+          account_type: string
+          created_at: string
+          department: string | null
+          email: string
+          first_name: string
+          id: string
+          is_active: boolean | null
+          last_name: string
+          linked_user_id: string | null
+          permissions: string[] | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_type: string
+          created_at?: string
+          department?: string | null
+          email: string
+          first_name: string
+          id?: string
+          is_active?: boolean | null
+          last_name: string
+          linked_user_id?: string | null
+          permissions?: string[] | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_type?: string
+          created_at?: string
+          department?: string | null
+          email?: string
+          first_name?: string
+          id?: string
+          is_active?: boolean | null
+          last_name?: string
+          linked_user_id?: string | null
+          permissions?: string[] | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       attendance: {
         Row: {
           class_date: string
@@ -433,6 +478,48 @@ export type Database = {
           },
         ]
       }
+      parents: {
+        Row: {
+          address: string | null
+          created_at: string
+          email: string
+          gender: string | null
+          id: string
+          linked_user_id: string | null
+          name: string
+          occupation: string | null
+          phone: string
+          relationship_to_student: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          email: string
+          gender?: string | null
+          id?: string
+          linked_user_id?: string | null
+          name: string
+          occupation?: string | null
+          phone: string
+          relationship_to_student?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          email?: string
+          gender?: string | null
+          id?: string
+          linked_user_id?: string | null
+          name?: string
+          occupation?: string | null
+          phone?: string
+          relationship_to_student?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
@@ -520,6 +607,195 @@ export type Database = {
           role?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      student_parents: {
+        Row: {
+          created_at: string
+          id: string
+          parent_id: string
+          relationship_type: string
+          student_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          parent_id: string
+          relationship_type: string
+          student_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          parent_id?: string
+          relationship_type?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_parents_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "parents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_parents_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      students: {
+        Row: {
+          address: string | null
+          admission_number: string | null
+          class_name: string | null
+          created_at: string
+          date_of_birth: string | null
+          email: string
+          father_name: string | null
+          father_occupation: string | null
+          first_name: string
+          gender: string | null
+          id: string
+          last_name: string
+          linked_user_id: string | null
+          mother_name: string | null
+          mother_occupation: string | null
+          nationality: string | null
+          parent_photo_url: string | null
+          permanent_address: string | null
+          phone: string | null
+          present_address: string | null
+          religion: string | null
+          roll_number: string | null
+          section: string | null
+          student_photo_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          admission_number?: string | null
+          class_name?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          email: string
+          father_name?: string | null
+          father_occupation?: string | null
+          first_name: string
+          gender?: string | null
+          id?: string
+          last_name: string
+          linked_user_id?: string | null
+          mother_name?: string | null
+          mother_occupation?: string | null
+          nationality?: string | null
+          parent_photo_url?: string | null
+          permanent_address?: string | null
+          phone?: string | null
+          present_address?: string | null
+          religion?: string | null
+          roll_number?: string | null
+          section?: string | null
+          student_photo_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          admission_number?: string | null
+          class_name?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          email?: string
+          father_name?: string | null
+          father_occupation?: string | null
+          first_name?: string
+          gender?: string | null
+          id?: string
+          last_name?: string
+          linked_user_id?: string | null
+          mother_name?: string | null
+          mother_occupation?: string | null
+          nationality?: string | null
+          parent_photo_url?: string | null
+          permanent_address?: string | null
+          phone?: string | null
+          present_address?: string | null
+          religion?: string | null
+          roll_number?: string | null
+          section?: string | null
+          student_photo_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      teachers: {
+        Row: {
+          address: string | null
+          class_assigned: string | null
+          created_at: string
+          date_of_birth: string | null
+          email: string
+          employee_id: string | null
+          experience_years: number | null
+          first_name: string
+          gender: string | null
+          id: string
+          last_name: string
+          linked_user_id: string | null
+          phone: string | null
+          qualification: string | null
+          religion: string | null
+          section_assigned: string | null
+          subject: string | null
+          teacher_photo_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          class_assigned?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          email: string
+          employee_id?: string | null
+          experience_years?: number | null
+          first_name: string
+          gender?: string | null
+          id?: string
+          last_name: string
+          linked_user_id?: string | null
+          phone?: string | null
+          qualification?: string | null
+          religion?: string | null
+          section_assigned?: string | null
+          subject?: string | null
+          teacher_photo_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          class_assigned?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          email?: string
+          employee_id?: string | null
+          experience_years?: number | null
+          first_name?: string
+          gender?: string | null
+          id?: string
+          last_name?: string
+          linked_user_id?: string | null
+          phone?: string | null
+          qualification?: string | null
+          religion?: string | null
+          section_assigned?: string | null
+          subject?: string | null
+          teacher_photo_url?: string | null
+          updated_at?: string
         }
         Relationships: []
       }

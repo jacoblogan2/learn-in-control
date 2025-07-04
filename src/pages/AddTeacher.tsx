@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { AdminDataService, TeacherData } from '@/services/adminDataService';
 
 const AddTeacher = () => {
   const navigate = useNavigate();
@@ -44,22 +45,61 @@ const AddTeacher = () => {
     setFormData(prev => ({ ...prev, teacherPhoto: file }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Create teacher from form data
-    addTeacher({
-      userId: '999', // In a real app this would be linked to a user account
-      subjectIds: [formData.subject || '1'],
-      classroomIds: [formData.class || '1']
-    });
-    
-    toast({
-      title: "Success",
-      description: "Teacher has been added successfully",
-    });
-    
-    navigate('/all-teachers');
+    try {
+      // Generate employee ID
+      const employeeId = AdminDataService.generateEmployeeId();
+      
+      // Prepare teacher data for database
+      const teacherData: TeacherData = {
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        email: formData.email,
+        phone: formData.phoneNo,
+        address: formData.address,
+        date_of_birth: formData.dateOfBirth || undefined,
+        gender: formData.gender || undefined,
+        employee_id: employeeId,
+        subject: formData.subject,
+        class_assigned: formData.class,
+        section_assigned: formData.section,
+        religion: formData.religion,
+      };
+
+      // Create teacher in database
+      const { data, error } = await AdminDataService.createTeacher(teacherData);
+      
+      if (error) {
+        toast({
+          title: "Error",
+          description: error,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Also add to legacy context for compatibility
+      addTeacher({
+        userId: '999', // In a real app this would be linked to a user account
+        subjectIds: [formData.subject || '1'],
+        classroomIds: [formData.class || '1']
+      });
+      
+      toast({
+        title: "Success",
+        description: `Teacher added successfully! Employee ID: ${employeeId}`,
+      });
+      
+      navigate('/all-teachers');
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add teacher. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleReset = () => {

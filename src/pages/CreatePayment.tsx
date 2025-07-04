@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '@/contexts/DataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,22 +7,35 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { AdminDataService } from '@/services/adminDataService';
 
 const CreatePayment = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [students, setStudents] = useState<any[]>([]);
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
   
   const [formData, setFormData] = useState({
-    name: '',
-    id: '',
-    class: '',
-    section: '',
+    student_id: '',
     totalFee: '',
     feestype: '',
     paymentMethod: '',
-    status: '',
-    date: ''
+    date: '',
+    notes: ''
   });
+
+  // Fetch students for dropdown
+  useEffect(() => {
+    fetchStudents();
+  }, []);
+
+  const fetchStudents = async () => {
+    const { data, error } = await AdminDataService.getStudents();
+    if (!error) {
+      setStudents(data || []);
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -34,29 +47,69 @@ const CreatePayment = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    toast({
-      title: "Success",
-      description: "Payment has been recorded successfully",
-    });
-    
-    navigate('/fees-collection');
+    try {
+      if (!selectedStudent) {
+        toast({
+          title: "Error",
+          description: "Please select a student",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Create payment record
+      const paymentData = {
+        student_id: selectedStudent.id,
+        amount: parseFloat(formData.totalFee),
+        payment_method: formData.paymentMethod.toLowerCase().replace(' ', '_') as any,
+        payment_date: formData.date,
+        notes: formData.notes || `Payment for ${formData.feestype}`,
+        invoice_id: crypto.randomUUID() // Create a temporary invoice ID - in real app this would be proper invoice
+      };
+
+      const { data, error } = await supabase
+        .from('payments')
+        .insert([paymentData])
+        .select()
+        .single();
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      toast({
+        title: "Success",
+        description: "Payment has been recorded successfully",
+      });
+      
+      navigate('/fees-collection');
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to record payment. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleReset = () => {
     setFormData({
-      name: '',
-      id: '',
-      class: '',
-      section: '',
+      student_id: '',
       totalFee: '',
       feestype: '',
       paymentMethod: '',
-      status: '',
-      date: ''
+      date: '',
+      notes: ''
     });
+    setSelectedStudent(null);
   };
 
   return (
@@ -66,90 +119,63 @@ const CreatePayment = () => {
       <Card>
         <CardContent className="p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  placeholder="Student Name"
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="id">ID</Label>
-                <Input
-                  id="id"
-                  name="id"
-                  value={formData.id}
-                  onChange={handleInputChange}
-                  placeholder="Student ID"
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="class">Class</Label>
+                <Label htmlFor="student_id">Select Student</Label>
                 <div className="relative">
                   <select
-                    id="class"
-                    name="class"
-                    value={formData.class}
-                    onChange={handleSelectChange}
+                    id="student_id"
+                    name="student_id"
+                    value={formData.student_id}
+                    onChange={(e) => {
+                      const studentId = e.target.value;
+                      const student = students.find(s => s.id === studentId);
+                      setSelectedStudent(student);
+                      setFormData(prev => ({ ...prev, student_id: studentId }));
+                    }}
                     className="w-full rounded-md border border-input px-3 py-2 bg-background text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     required
                   >
-                    <option value="">Please Select Class</option>
-                    <option value="1">Class 1</option>
-                    <option value="2">Class 2</option>
-                    <option value="3">Class 3</option>
-                    <option value="4">Class 4</option>
-                    <option value="5">Class 5</option>
+                    <option value="">Please Select Student</option>
+                    {students.map((student) => (
+                      <option key={student.id} value={student.id}>
+                        {student.first_name} {student.last_name} - {student.admission_number}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
-              
+
               <div className="space-y-2">
-                <Label htmlFor="section">Section</Label>
-                <div className="relative">
-                  <select
-                    id="section"
-                    name="section"
-                    value={formData.section}
-                    onChange={handleSelectChange}
-                    className="w-full rounded-md border border-input px-3 py-2 bg-background text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    required
-                  >
-                    <option value="">Please Select Section</option>
-                    <option value="A">Section A</option>
-                    <option value="B">Section B</option>
-                    <option value="C">Section C</option>
-                    <option value="D">Section D</option>
-                    <option value="E">Section E</option>
-                  </select>
-                </div>
+                <Label htmlFor="date">Payment Date</Label>
+                <Input
+                  id="date"
+                  name="date"
+                  type="date"
+                  value={formData.date}
+                  onChange={handleInputChange}
+                  required
+                />
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="totalFee">Total Fee</Label>
+                <Label htmlFor="totalFee">Amount</Label>
                 <Input
                   id="totalFee"
                   name="totalFee"
                   type="number"
+                  step="0.01"
                   value={formData.totalFee}
                   onChange={handleInputChange}
-                  placeholder="Total Fee Amount"
+                  placeholder="Payment Amount"
                   required
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="feestype">Fees Type</Label>
+                <Label htmlFor="feestype">Fee Type</Label>
                 <select
                     id="feestype"
                     name="feestype"
@@ -158,21 +184,12 @@ const CreatePayment = () => {
                     className="w-full rounded-md border border-input px-3 py-2 bg-background text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     required
                     >
-
-                    <option value="">Select Fees Type</option>
-                    <option value="Registration Fees">Registration Fees</option>
-                    <option value="Admission Fees">Admission Fees</option>
-                    <option value="Tuition Fees">Tuition Fees</option>
-                    <option value="Internship Request Letter(Graduates)">Internship Request Letter(Graduates)</option>
-                    <option value="Student Card">Student Card</option>
-                    <option value="Course Retake">Course Retake</option>
-                    <option value="Fine">Fine</option>
-                    <option value="Graduation Fees">Graduation Fees</option>
-                    <option value="Transcript">Transcript</option>
-                    <option value="Exam Retake">Exam Retake</option>
-                    <option value="Insurance Fees">Insurance Fees</option>
-                    <option value="Recommendation Letter">Recommendation Letter</option>
-                    <option value="Second Proposal Defense">Second Proposal Defense</option>
+                    <option value="">Select Fee Type</option>
+                    <option value="tuition_fee">Tuition Fee</option>
+                    <option value="registration_fee">Registration Fee</option>
+                    <option value="lab_fee">Lab Fee</option>
+                    <option value="library_fee">Library Fee</option>
+                    <option value="exam_fee">Exam Fee</option>
                   </select>
               </div>
 
@@ -188,47 +205,25 @@ const CreatePayment = () => {
                     required
                   >
                     <option value="">Select Payment Method</option>
-                    <option value="Cash">Cash</option>
-                    <option value="Check">Check</option>
-                    <option value="Credit Card">Credit Card</option>
-                    <option value="Bank Transfer">Bank Transfer</option>
-                    <option value="MTN Mobile Money">MTN Mobile Money</option>
-                    <option value="Orange">Orange Money</option>
+                    <option value="cash">Cash</option>
+                    <option value="bank_transfer">Bank Transfer</option>
+                    <option value="credit_card">Credit Card</option>
+                    <option value="mtn_mobile_money">MTN Mobile Money</option>
+                    <option value="orange_money">Orange Money</option>
                   </select>
                 </div>
               </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <div className="relative">
-                  <select
-                    id="status"
-                    name="status"
-                    value={formData.status}
-                    onChange={handleSelectChange}
-                    className="w-full rounded-md border border-input px-3 py-2 bg-background text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    required
-                  >
-                    <option value="">Select Status</option>
-                    <option value="Paid">Paid</option>
-                    <option value="Due">Due</option>
-                    <option value="Partial">Partial</option>
-                  </select>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="date">Date</Label>
-                <Input
-                  id="date"
-                  name="date"
-                  type="date"
-                  value={formData.date}
-                  onChange={handleInputChange}
-                  placeholder="dd/mm/yyyy"
-                  required
-                />
-              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes (Optional)</Label>
+              <Input
+                id="notes"
+                name="notes"
+                value={formData.notes}
+                onChange={handleInputChange}
+                placeholder="Additional payment notes"
+              />
             </div>
             
             <div className="flex justify-start gap-3 pt-4">

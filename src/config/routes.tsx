@@ -18,6 +18,7 @@ import TeachersList from "../pages/TeachersList";
 import TeacherDetails from "../pages/TeacherDetails";
 import AddTeacher from "../pages/AddTeacher";
 import Parents from "../pages/Parents";
+import AddParent from "../pages/AddParent";
 import FeesCollection from "../pages/FeesCollection";
 import CreatePayment from "../pages/CreatePayment";
 import Schools from "../pages/Schools";
@@ -105,6 +106,10 @@ export const routes: RouteObject[] = [
   {
     path: "/parents",
     element: <LayoutWrapper><Parents /></LayoutWrapper>
+  },
+  {
+    path: "/add-parent",
+    element: <LayoutWrapper><AddParent /></LayoutWrapper>
   },
   // Account
   {

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { AdminDataService, StudentData } from '@/services/adminDataService';
 
 const AdmitForm = () => {
   const navigate = useNavigate();
@@ -51,22 +52,67 @@ const AdmitForm = () => {
     setFormData(prev => ({ ...prev, [field]: file }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Create student from form data
-    addStudent({
-      name: `${formData.firstName} ${formData.lastName}`,
-      email: formData.email,
-      classroomId: formData.class || null,
-    });
-    
-    toast({
-      title: "Success",
-      description: "Student has been added successfully",
-    });
-    
-    navigate('/students');
+    try {
+      // Generate admission number
+      const admissionNumber = AdminDataService.generateAdmissionNumber();
+      
+      // Prepare student data for database
+      const studentData: StudentData = {
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        email: formData.email,
+        phone: formData.phoneNumber,
+        date_of_birth: formData.dateOfBirth || undefined,
+        gender: formData.gender || undefined,
+        admission_number: admissionNumber,
+        roll_number: formData.roll,
+        class_name: formData.class,
+        section: formData.section,
+        religion: formData.religion,
+        nationality: formData.nationality,
+        father_name: formData.fatherName,
+        mother_name: formData.motherName,
+        father_occupation: formData.fatherOccupation,
+        mother_occupation: formData.motherOccupation,
+        present_address: formData.presentAddress,
+        permanent_address: formData.permanentAddress,
+      };
+
+      // Create student in database
+      const { data, error } = await AdminDataService.createStudent(studentData);
+      
+      if (error) {
+        toast({
+          title: "Error",
+          description: error,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Also add to legacy context for compatibility
+      addStudent({
+        name: `${formData.firstName} ${formData.lastName}`,
+        email: formData.email,
+        classroomId: formData.class || null,
+      });
+      
+      toast({
+        title: "Success",
+        description: `Student admitted successfully! Admission No: ${admissionNumber}`,
+      });
+      
+      navigate('/students');
+    } catch (error) {
+      toast({
+        title: "Error", 
+        description: "Failed to admit student. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleReset = () => {
