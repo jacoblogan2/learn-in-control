@@ -22,7 +22,8 @@ const CreatePayment = () => {
     feestype: '',
     paymentMethod: '',
     date: '',
-    notes: ''
+    notes: '',
+    phoneNumber: ''
   });
 
   // Fetch students for dropdown
@@ -60,14 +61,52 @@ const CreatePayment = () => {
         return;
       }
 
-      // Create payment record
+      // Validate phone number for mobile money payments
+      const isMobileMoney = formData.paymentMethod === 'mtn_mobile_money' || formData.paymentMethod === 'orange_money';
+      if (isMobileMoney && !formData.phoneNumber) {
+        toast({
+          title: "Error",
+          description: "Phone number is required for mobile money payments",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // First create an invoice
+      const invoiceData = {
+        student_id: selectedStudent.id,
+        amount: parseFloat(formData.totalFee),
+        fee_type: formData.feestype as 'tuition_fee' | 'registration_fee' | 'lab_fee' | 'library_fee' | 'exam_fee',
+        due_date: formData.date,
+        academic_year: new Date().getFullYear().toString(),
+        status: 'pending' as 'pending' | 'paid' | 'overdue' | 'partial'
+      };
+
+      const { data: invoiceResult, error: invoiceError } = await supabase
+        .from('invoices')
+        .insert([invoiceData])
+        .select()
+        .single();
+
+      if (invoiceError) {
+        toast({
+          title: "Error",
+          description: invoiceError.message,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Create payment record with proper invoice reference
       const paymentData = {
         student_id: selectedStudent.id,
         amount: parseFloat(formData.totalFee),
         payment_method: formData.paymentMethod.toLowerCase().replace(' ', '_') as any,
         payment_date: formData.date,
-        notes: formData.notes || `Payment for ${formData.feestype}`,
-        invoice_id: crypto.randomUUID() // Create a temporary invoice ID - in real app this would be proper invoice
+        notes: isMobileMoney 
+          ? `${formData.notes || `Payment for ${formData.feestype}`} - Phone: ${formData.phoneNumber}`
+          : formData.notes || `Payment for ${formData.feestype}`,
+        invoice_id: invoiceResult.id
       };
 
       const { data, error } = await supabase
@@ -84,6 +123,12 @@ const CreatePayment = () => {
         });
         return;
       }
+
+      // Update invoice status to paid
+      await supabase
+        .from('invoices')
+        .update({ status: 'paid' })
+        .eq('id', invoiceResult.id);
       
       toast({
         title: "Success",
@@ -107,7 +152,8 @@ const CreatePayment = () => {
       feestype: '',
       paymentMethod: '',
       date: '',
-      notes: ''
+      notes: '',
+      phoneNumber: ''
     });
     setSelectedStudent(null);
   };
@@ -214,6 +260,22 @@ const CreatePayment = () => {
                 </div>
               </div>
             </div>
+
+            {/* Phone Number field for Mobile Money payments */}
+            {(formData.paymentMethod === 'mtn_mobile_money' || formData.paymentMethod === 'orange_money') && (
+              <div className="space-y-2">
+                <Label htmlFor="phoneNumber">Phone Number *</Label>
+                <Input
+                  id="phoneNumber"
+                  name="phoneNumber"
+                  type="tel"
+                  value={formData.phoneNumber}
+                  onChange={handleInputChange}
+                  placeholder="Enter mobile money phone number"
+                  required
+                />
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="notes">Notes (Optional)</Label>
