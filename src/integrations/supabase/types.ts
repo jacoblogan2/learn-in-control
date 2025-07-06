@@ -860,7 +860,7 @@ export type Database = {
         | "bank_transfer"
         | "cash"
         | "credit_card"
-      user_role: "admin" | "student" | "lecturer"
+      user_role: "admin" | "student" | "lecturer" | "parent"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -998,7 +998,7 @@ export const Constants = {
         "cash",
         "credit_card",
       ],
-      user_role: ["admin", "student", "lecturer"],
+      user_role: ["admin", "student", "lecturer", "parent"],
     },
   },
 } as const

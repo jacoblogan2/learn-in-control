@@ -27,7 +27,7 @@ export const useUserProfile = () => {
           firstName: profile.first_name || '',
           lastName: profile.last_name || '',
           email: profile.email,
-          role: profile.role as 'admin' | 'lecturer' | 'student'
+          role: profile.role as 'admin' | 'lecturer' | 'student' | 'parent'
         };
         setCurrentUser(userData);
       }

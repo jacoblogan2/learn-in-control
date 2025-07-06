@@ -5,7 +5,7 @@ export interface User {
   firstName: string;
   lastName: string;
   email: string;
-  role: 'admin' | 'lecturer' | 'student';
+  role: 'admin' | 'lecturer' | 'student' | 'parent';
 }
 
 export interface AuthContextType {
@@ -15,7 +15,7 @@ export interface AuthContextType {
   signUp: (email: string, password: string, userData: {
     firstName: string;
     lastName: string;
-    role: 'admin' | 'lecturer' | 'student';
+    role: 'admin' | 'lecturer' | 'student' | 'parent';
   }) => Promise<void>;
   isLoading: boolean;
 }
@@ -23,5 +23,5 @@ export interface AuthContextType {
 export interface SignUpData {
   firstName: string;
   lastName: string;
-  role: 'admin' | 'lecturer' | 'student';
+  role: 'admin' | 'lecturer' | 'student' | 'parent';
 }
