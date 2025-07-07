@@ -676,6 +676,7 @@ export type Database = {
           permanent_address: string | null
           phone: string | null
           present_address: string | null
+          primary_parent_id: string | null
           religion: string | null
           roll_number: string | null
           section: string | null
@@ -703,6 +704,7 @@ export type Database = {
           permanent_address?: string | null
           phone?: string | null
           present_address?: string | null
+          primary_parent_id?: string | null
           religion?: string | null
           roll_number?: string | null
           section?: string | null
@@ -730,13 +732,22 @@ export type Database = {
           permanent_address?: string | null
           phone?: string | null
           present_address?: string | null
+          primary_parent_id?: string | null
           religion?: string | null
           roll_number?: string | null
           section?: string | null
           student_photo_url?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "students_primary_parent_id_fkey"
+            columns: ["primary_parent_id"]
+            isOneToOne: false
+            referencedRelation: "parents"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       teachers: {
         Row: {
