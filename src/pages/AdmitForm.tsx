@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { AdminDataService, StudentData } from '@/services/adminDataService';
+import { AdminDataService, StudentData, ParentData } from '@/services/adminDataService';
 
 const AdmitForm = () => {
   const navigate = useNavigate();
@@ -59,6 +59,17 @@ const AdmitForm = () => {
       // Generate admission number
       const admissionNumber = AdminDataService.generateAdmissionNumber();
       
+      // Prepare parent data from form
+      const parentData: ParentData = {
+        name: formData.fatherName, // Using father's name as primary parent
+        email: formData.email, // We'll use the same email for now
+        phone: formData.phoneNumber,
+        address: formData.presentAddress,
+        gender: 'Male', // Assuming father is primary parent
+        occupation: formData.fatherOccupation,
+        relationship_to_student: 'father',
+      };
+      
       // Prepare student data for database
       const studentData: StudentData = {
         first_name: formData.firstName,
@@ -81,8 +92,8 @@ const AdmitForm = () => {
         permanent_address: formData.permanentAddress,
       };
 
-      // Create student in database
-      const { data, error } = await AdminDataService.createStudent(studentData);
+      // Create student with parent using the new method
+      const { data, error } = await AdminDataService.createStudentWithParent(studentData, parentData);
       
       if (error) {
         toast({
@@ -102,7 +113,7 @@ const AdmitForm = () => {
       
       toast({
         title: "Success",
-        description: `Student admitted successfully! Admission No: ${admissionNumber}`,
+        description: `Student admitted successfully! Admission No: ${admissionNumber}. Parent record created and linked.`,
       });
       
       navigate('/students');

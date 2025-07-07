@@ -23,6 +23,7 @@ export interface StudentData {
   permanent_address?: string;
   student_photo_url?: string;
   parent_photo_url?: string;
+  primary_parent_id?: string;
 }
 
 export interface TeacherData {
@@ -290,6 +291,99 @@ export class AdminDataService {
 
       if (error) throw error;
       return { data, error: null };
+    } catch (error: any) {
+      return { data: null, error: error.message };
+    }
+  }
+
+  // Get student with parent information
+  static async getStudentWithParent(studentId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('students')
+        .select(`
+          *,
+          primary_parent:primary_parent_id(*)
+        `)
+        .eq('id', studentId)
+        .single();
+
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error: any) {
+      return { data: null, error: error.message };
+    }
+  }
+
+  // Get parent with their children
+  static async getParentWithChildren(parentId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('parents')
+        .select(`
+          *,
+          children:students!primary_parent_id(*),
+          student_relationships:student_parents(
+            student:students(*)
+          )
+        `)
+        .eq('id', parentId)
+        .single();
+
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error: any) {
+      return { data: null, error: error.message };
+    }
+  }
+
+  // Get students with their parent information
+  static async getStudentsWithParents() {
+    try {
+      const { data, error } = await supabase
+        .from('students')
+        .select(`
+          *,
+          primary_parent:primary_parent_id(*)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error: any) {
+      return { data: null, error: error.message };
+    }
+  }
+
+  // Create student and parent together
+  static async createStudentWithParent(studentData: StudentData, parentData: ParentData) {
+    try {
+      // First create the parent
+      const parentResult = await this.createParent(parentData);
+      if (parentResult.error) {
+        return { data: null, error: parentResult.error };
+      }
+
+      // Then create the student with the parent's ID
+      const studentDataWithParent = {
+        ...studentData,
+        primary_parent_id: parentResult.data.id
+      };
+
+      const studentResult = await this.createStudent(studentDataWithParent);
+      if (studentResult.error) {
+        // If student creation fails, we should consider cleaning up the parent
+        // For now, we'll just return the error
+        return { data: null, error: studentResult.error };
+      }
+
+      return { 
+        data: { 
+          student: studentResult.data, 
+          parent: parentResult.data 
+        }, 
+        error: null 
+      };
     } catch (error: any) {
       return { data: null, error: error.message };
     }

@@ -1,30 +1,75 @@
 
-import React, { useState } from 'react';
-import { useData } from '@/contexts/DataContext';
+import React, { useState, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Link } from 'react-router-dom';
-import { Edit, Trash2, Eye, Search } from 'lucide-react';
-import { Student } from '@/types';
+import { Edit, Trash2, Eye, Search, Plus } from 'lucide-react';
+import { AdminDataService } from '@/services/adminDataService';
+import { useToast } from '@/hooks/use-toast';
 
 const Students = () => {
-  const { students, classrooms } = useData();
+  const [students, setStudents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchRoll, setSearchRoll] = useState('');
   const [searchSection, setSearchSection] = useState('');
+  const { toast } = useToast();
+
+  // Fetch students from database
+  useEffect(() => {
+    fetchStudents();
+  }, []);
+
+  const fetchStudents = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await AdminDataService.getStudentsWithParents();
+      if (error) {
+        toast({
+          title: "Error",
+          description: error,
+          variant: "destructive"
+        });
+      } else {
+        setStudents(data || []);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load students",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm('Are you sure you want to delete this student?')) {
+      const { error } = await AdminDataService.deleteStudent(id);
+      if (error) {
+        toast({
+          title: "Error",
+          description: error,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Student deleted successfully"
+        });
+        fetchStudents(); // Refresh the list
+      }
+    }
+  };
 
   // Filter students based on search criteria
   const filteredStudents = students.filter(student => {
-    const nameMatch = student.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const rollMatch = searchRoll ? student.id.includes(searchRoll) : true;
-    
-    // Find classroom name using the classroomId
-    const classroom = classrooms.find(c => c.id === student.classroomId);
-    const classroomName = classroom?.name || '';
-    
-    const sectionMatch = searchSection ? 
-      classroomName.toLowerCase().includes(searchSection.toLowerCase()) : true;
+    const fullName = `${student.first_name} ${student.last_name}`.toLowerCase();
+    const nameMatch = fullName.includes(searchTerm.toLowerCase());
+    const rollMatch = searchRoll ? student.roll_number?.includes(searchRoll) : true;
+    const sectionMatch = searchSection ? student.section?.toLowerCase().includes(searchSection.toLowerCase()) : true;
     
     return nameMatch && rollMatch && sectionMatch;
   });
@@ -37,15 +82,23 @@ const Students = () => {
         <div className="flex flex-col md:flex-row gap-3">
           <Input 
             type="text" 
-            placeholder="ID/Type here..." 
+            placeholder="Search by name..." 
             className="w-full md:w-48"
-            value={searchRoll}
-            onChange={e => setSearchRoll(e.target.value)} 
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)} 
           />
           
           <Input 
             type="text" 
-            placeholder="Type Section..." 
+            placeholder="Search by roll..." 
+            className="w-full md:w-48"
+            value={searchRoll}
+            onChange={e => setSearchRoll(e.target.value)}
+          />
+          
+          <Input 
+            type="text" 
+            placeholder="Search by section..." 
             className="w-full md:w-48"
             value={searchSection}
             onChange={e => setSearchSection(e.target.value)}
@@ -63,16 +116,12 @@ const Students = () => {
           <h2 className="font-semibold">All Students</h2>
           
           <div className="flex items-center space-x-2">
-            <Button variant="outline" size="icon">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" clipRule="evenodd" />
-              </svg>
-            </Button>
-            <Button variant="outline" size="icon">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
-              </svg>
-            </Button>
+            <Link to="/admit-form">
+              <Button variant="default" className="bg-yellow-500 hover:bg-yellow-600 flex items-center gap-2">
+                <Plus size={16} />
+                Add New Student
+              </Button>
+            </Link>
           </div>
         </div>
         
@@ -83,11 +132,11 @@ const Students = () => {
                 <TableHead className="w-12">
                   <input type="checkbox" className="h-4 w-4" />
                 </TableHead>
-                <TableHead>Roll</TableHead>
+                <TableHead>ID</TableHead>
                 <TableHead>Photo</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Gender</TableHead>
-                <TableHead>Parents Name</TableHead>
+                <TableHead>Parent Name</TableHead>
                 <TableHead>Class</TableHead>
                 <TableHead>Section</TableHead>
                 <TableHead>Address</TableHead>
@@ -98,77 +147,73 @@ const Students = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredStudents.length === 0 ? (
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={13} className="text-center py-8">
+                    Loading students...
+                  </TableCell>
+                </TableRow>
+              ) : filteredStudents.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={13} className="text-center py-8">
                     No students found
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredStudents.map((student, index) => {
-                  // Find classroom for the student
-                  const classroom = classrooms.find(c => c.id === student.classroomId);
-                  const classroomName = classroom?.name || 'Unknown';
-                  
-                  return (
-                    <TableRow key={student.id}>
-                      <TableCell>
-                        <input type="checkbox" className="h-4 w-4" />
-                      </TableCell>
-                      <TableCell>#{student.id.padStart(4, '0')}</TableCell>
-                      <TableCell>
-                        <div className="w-8 h-8 rounded-full bg-blue-100 overflow-hidden">
-                          <img 
-                            src={`https://i.pravatar.cc/100?u=${student.id}`} 
-                            alt={student.name} 
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      </TableCell>
-                      <TableCell>{student.name}</TableCell>
-                      <TableCell>{index % 2 === 0 ? 'Female' : 'Male'}</TableCell>
-                      <TableCell>{index % 2 === 0 ? 'David Smith' : 'Mike Husky'}</TableCell>
-                      <TableCell>{index % 5 + 1}</TableCell>
-                      <TableCell>{classroomName ? classroomName.split('-')[1] || 'A' : 'A'}</TableCell>
-                      <TableCell>
-                        {index % 3 === 0 ? 'TA-110, North Sydney' : 
-                        index % 3 === 1 ? '59 street, North Sydney' : 
-                        '96 Street, Heavy, Reosle'}
-                      </TableCell>
-                      <TableCell>10/03/2010</TableCell>
-                      <TableCell>+ 8812 00 5098</TableCell>
-                      <TableCell>{student.email || `${student.name.toLowerCase().replace(/\s/g, '')}@gmail.com`}</TableCell>
-                      <TableCell>
-                        <div className="flex justify-end items-center space-x-2">
-                          <Link to={`/student-details?id=${student.id}`}>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600">
-                              <Eye size={16} />
-                            </Button>
-                          </Link>
-                          <Link to={`/student-edit?id=${student.id}`}>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-600">
-                              <Edit size={16} />
-                            </Button>
-                          </Link>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-red-600">
-                            <Trash2 size={16} />
+                filteredStudents.map((student) => (
+                  <TableRow key={student.id}>
+                    <TableCell>
+                      <input type="checkbox" className="h-4 w-4" />
+                    </TableCell>
+                    <TableCell>#{student.admission_number || student.id.slice(-8)}</TableCell>
+                    <TableCell>
+                      <div className="w-8 h-8 rounded-full bg-blue-100 overflow-hidden">
+                        <img 
+                          src={student.student_photo_url || `https://i.pravatar.cc/100?u=${student.id}`} 
+                          alt={`${student.first_name} ${student.last_name}`} 
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    </TableCell>
+                    <TableCell>{student.first_name} {student.last_name}</TableCell>
+                    <TableCell>{student.gender || 'Not specified'}</TableCell>
+                    <TableCell>
+                      {student.primary_parent ? student.primary_parent.name : 
+                       student.father_name || student.mother_name || 'N/A'}
+                    </TableCell>
+                    <TableCell>{student.class_name || 'N/A'}</TableCell>
+                    <TableCell>{student.section || 'N/A'}</TableCell>
+                    <TableCell>{student.present_address || student.address || 'N/A'}</TableCell>
+                    <TableCell>{student.date_of_birth ? new Date(student.date_of_birth).toLocaleDateString() : 'N/A'}</TableCell>
+                    <TableCell>{student.phone || 'N/A'}</TableCell>
+                    <TableCell>{student.email}</TableCell>
+                    <TableCell>
+                      <div className="flex justify-end items-center space-x-2">
+                        <Link to={`/student-details?id=${student.id}`}>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600">
+                            <Eye size={16} />
                           </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
+                        </Link>
+                        <Link to={`/student-edit?id=${student.id}`}>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-600">
+                            <Edit size={16} />
+                          </Button>
+                        </Link>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-7 w-7 text-red-600"
+                          onClick={() => handleDelete(student.id)}
+                        >
+                          <Trash2 size={16} />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
               )}
             </TableBody>
           </Table>
-        </div>
-        
-        <div className="p-4 flex justify-end">
-          <Button variant="default" className="bg-yellow-500 hover:bg-yellow-600">
-            <Link to="/admit-form" className="text-white">
-              + Add New Student
-            </Link>
-          </Button>
         </div>
       </div>
     </div>
