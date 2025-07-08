@@ -13,11 +13,15 @@ import StudentDashboard from "../pages/StudentDashboard";
 import LecturerDashboard from "../pages/LecturerDashboard";
 import Students from "../pages/Students";
 import StudentDetails from "../pages/StudentDetails";
+import StudentEdit from "../pages/StudentEdit";
 import AdmitForm from "../pages/AdmitForm";
 import TeachersList from "../pages/TeachersList";
 import TeacherDetails from "../pages/TeacherDetails";
+import TeacherEdit from "../pages/TeacherEdit";
 import AddTeacher from "../pages/AddTeacher";
 import Parents from "../pages/Parents";
+import ParentDetails from "../pages/ParentDetails";
+import ParentEdit from "../pages/ParentEdit";
 import AddParent from "../pages/AddParent";
 import FeesCollection from "../pages/FeesCollection";
 import CreatePayment from "../pages/CreatePayment";
@@ -82,6 +86,10 @@ export const routes: RouteObject[] = [
     element: <LayoutWrapper><StudentDetails /></LayoutWrapper>
   },
   {
+    path: "/student-edit",
+    element: <LayoutWrapper><StudentEdit /></LayoutWrapper>
+  },
+  {
     path: "/admit-form",
     element: <LayoutWrapper><AdmitForm /></LayoutWrapper>
   },
@@ -99,6 +107,10 @@ export const routes: RouteObject[] = [
     element: <LayoutWrapper><TeacherDetails /></LayoutWrapper>
   },
   {
+    path: "/teacher-edit",
+    element: <LayoutWrapper><TeacherEdit /></LayoutWrapper>
+  },
+  {
     path: "/add-teacher",
     element: <LayoutWrapper><AddTeacher /></LayoutWrapper>
   },
@@ -106,6 +118,14 @@ export const routes: RouteObject[] = [
   {
     path: "/parents",
     element: <LayoutWrapper><Parents /></LayoutWrapper>
+  },
+  {
+    path: "/parent-details",
+    element: <LayoutWrapper><ParentDetails /></LayoutWrapper>
+  },
+  {
+    path: "/parent-edit",
+    element: <LayoutWrapper><ParentEdit /></LayoutWrapper>
   },
   {
     path: "/add-parent",

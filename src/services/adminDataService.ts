@@ -156,6 +156,21 @@ export class AdminDataService {
     }
   }
 
+  static async getTeacherById(id: string) {
+    try {
+      const { data, error } = await supabase
+        .from('teachers')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error: any) {
+      return { data: null, error: error.message };
+    }
+  }
+
   static async updateTeacher(id: string, teacherData: Partial<TeacherData>) {
     try {
       const { data, error } = await supabase

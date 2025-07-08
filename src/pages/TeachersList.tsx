@@ -1,52 +1,77 @@
 
-import React, { useState } from 'react';
-import { useData } from '@/contexts/DataContext';
+import React, { useState, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Link } from 'react-router-dom';
-import { Edit, Trash2, Eye, Search } from 'lucide-react';
+import { Edit, Trash2, Eye, Search, Plus } from 'lucide-react';
+import { AdminDataService } from '@/services/adminDataService';
+import { useToast } from '@/hooks/use-toast';
 
 const TeachersList = () => {
-  const { teachers } = useData();
+  const [teachers, setTeachers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchClass, setSearchClass] = useState('');
   const [searchSubject, setSearchSubject] = useState('');
+  const { toast } = useToast();
 
-  // Filter students based on search criteria
-  const filteredTeachers = teachers;
+  // Fetch teachers from database
+  useEffect(() => {
+    fetchTeachers();
+  }, []);
 
-  // Generate mock data for display
-  const mockTeachers = Array(20).fill(null).map((_, index) => {
-    const id = (2901 + index).toString();
-    const name = 'Richi Rozario';
-    const gender = index % 3 === 0 ? 'Male' : 'Female';
-    const subjects = [
-      'Math', 'English', 'Science', 'History', 'Social Science', 
-      'Physics', 'Chemistry', 'Biology', 'Computer Science', 'Art'
-    ];
-    const subject = subjects[index % subjects.length];
-    const classNum = (index % 5) + 1;
-    const sections = ['A', 'B', 'C', 'D', 'E'];
-    const section = sections[index % sections.length];
-    const address = 'TA-110, North Sydney';
-    const dob = '10/03/2010';
-    const phone = '+ 8812 00 5098';
-    const email = `richiro${index}@gmail.com`;
+  const fetchTeachers = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await AdminDataService.getTeachers();
+      if (error) {
+        toast({
+          title: "Error",
+          description: error,
+          variant: "destructive"
+        });
+      } else {
+        setTeachers(data || []);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load teachers",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    return {
-      id,
-      name,
-      gender,
-      subject,
-      class: classNum,
-      section,
-      address,
-      dob,
-      phone,
-      email,
-      photoUrl: `https://i.pravatar.cc/150?u=teacher${index}`
-    };
+  const handleDelete = async (id: string) => {
+    if (confirm('Are you sure you want to delete this teacher?')) {
+      const { error } = await AdminDataService.deleteTeacher(id);
+      if (error) {
+        toast({
+          title: "Error",
+          description: error,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Teacher deleted successfully"
+        });
+        fetchTeachers(); // Refresh the list
+      }
+    }
+  };
+
+  // Filter teachers based on search criteria
+  const filteredTeachers = teachers.filter(teacher => {
+    const fullName = `${teacher.first_name} ${teacher.last_name}`.toLowerCase();
+    const nameMatch = fullName.includes(searchTerm.toLowerCase());
+    const classMatch = searchClass ? teacher.class_assigned?.includes(searchClass) : true;
+    const subjectMatch = searchSubject ? teacher.subject?.toLowerCase().includes(searchSubject.toLowerCase()) : true;
+    
+    return nameMatch && classMatch && subjectMatch;
   });
 
   return (
@@ -57,7 +82,7 @@ const TeachersList = () => {
         <div className="flex flex-col md:flex-row gap-3">
           <Input 
             type="text" 
-            placeholder="ID/Type here..." 
+            placeholder="Search by name..." 
             className="w-full md:w-48"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)} 
@@ -65,7 +90,7 @@ const TeachersList = () => {
           
           <Input 
             type="text" 
-            placeholder="Type Class..." 
+            placeholder="Search by class..." 
             className="w-full md:w-48"
             value={searchClass}
             onChange={e => setSearchClass(e.target.value)}
@@ -73,7 +98,7 @@ const TeachersList = () => {
           
           <Input 
             type="text" 
-            placeholder="Subject..." 
+            placeholder="Search by subject..." 
             className="w-full md:w-48"
             value={searchSubject}
             onChange={e => setSearchSubject(e.target.value)}
@@ -91,16 +116,12 @@ const TeachersList = () => {
           <h2 className="font-semibold">All Teachers</h2>
           
           <div className="flex items-center space-x-2">
-            <Button variant="outline" size="icon">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" clipRule="evenodd" />
-              </svg>
-            </Button>
-            <Button variant="outline" size="icon">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
-              </svg>
-            </Button>
+            <Link to="/add-teacher">
+              <Button variant="default" className="bg-yellow-500 hover:bg-yellow-600 flex items-center gap-2">
+                <Plus size={16} />
+                Add New Teacher
+              </Button>
+            </Link>
           </div>
         </div>
         
@@ -126,59 +147,70 @@ const TeachersList = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockTeachers.map((teacher) => (
-                <TableRow key={teacher.id}>
-                  <TableCell>
-                    <input type="checkbox" className="h-4 w-4" />
-                  </TableCell>
-                  <TableCell>#{teacher.id}</TableCell>
-                  <TableCell>
-                    <div className="w-8 h-8 rounded-full bg-blue-100 overflow-hidden">
-                      <img 
-                        src={teacher.photoUrl} 
-                        alt={teacher.name} 
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  </TableCell>
-                  <TableCell>{teacher.name}</TableCell>
-                  <TableCell>{teacher.gender}</TableCell>
-                  <TableCell>{teacher.subject}</TableCell>
-                  <TableCell>{teacher.class}</TableCell>
-                  <TableCell>{teacher.section}</TableCell>
-                  <TableCell>{teacher.address}</TableCell>
-                  <TableCell>{teacher.dob}</TableCell>
-                  <TableCell>{teacher.phone}</TableCell>
-                  <TableCell>{teacher.email}</TableCell>
-                  <TableCell>
-                    <div className="flex justify-end items-center space-x-2">
-                      <Link to={`/teacher-details?id=${teacher.id}`}>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600">
-                          <Eye size={16} />
-                        </Button>
-                      </Link>
-                      <Link to={`/teacher-edit?id=${teacher.id}`}>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-600">
-                          <Edit size={16} />
-                        </Button>
-                      </Link>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-red-600">
-                        <Trash2 size={16} />
-                      </Button>
-                    </div>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={13} className="text-center py-8">
+                    Loading teachers...
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : filteredTeachers.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={13} className="text-center py-8">
+                    No teachers found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredTeachers.map((teacher) => (
+                  <TableRow key={teacher.id}>
+                    <TableCell>
+                      <input type="checkbox" className="h-4 w-4" />
+                    </TableCell>
+                    <TableCell>#{teacher.employee_id || teacher.id.slice(-8)}</TableCell>
+                    <TableCell>
+                      <div className="w-8 h-8 rounded-full bg-blue-100 overflow-hidden">
+                        <img 
+                          src={teacher.teacher_photo_url || `https://i.pravatar.cc/100?u=${teacher.id}`} 
+                          alt={`${teacher.first_name} ${teacher.last_name}`} 
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    </TableCell>
+                    <TableCell>{teacher.first_name} {teacher.last_name}</TableCell>
+                    <TableCell>{teacher.gender || 'Not specified'}</TableCell>
+                    <TableCell>{teacher.subject || 'N/A'}</TableCell>
+                    <TableCell>{teacher.class_assigned || 'N/A'}</TableCell>
+                    <TableCell>{teacher.section_assigned || 'N/A'}</TableCell>
+                    <TableCell>{teacher.address || 'N/A'}</TableCell>
+                    <TableCell>{teacher.date_of_birth ? new Date(teacher.date_of_birth).toLocaleDateString() : 'N/A'}</TableCell>
+                    <TableCell>{teacher.phone || 'N/A'}</TableCell>
+                    <TableCell>{teacher.email}</TableCell>
+                    <TableCell>
+                      <div className="flex justify-end items-center space-x-2">
+                        <Link to={`/teacher-details?id=${teacher.id}`}>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600">
+                            <Eye size={16} />
+                          </Button>
+                        </Link>
+                        <Link to={`/teacher-edit?id=${teacher.id}`}>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-600">
+                            <Edit size={16} />
+                          </Button>
+                        </Link>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-7 w-7 text-red-600"
+                          onClick={() => handleDelete(teacher.id)}
+                        >
+                          <Trash2 size={16} />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
-        </div>
-        
-        <div className="p-4 flex justify-end">
-          <Button variant="default" className="bg-yellow-500 hover:bg-yellow-600">
-            <Link to="/add-teacher" className="text-white">
-              + Add New Teacher
-            </Link>
-          </Button>
         </div>
       </div>
     </div>
