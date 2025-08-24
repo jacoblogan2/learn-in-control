@@ -206,7 +206,10 @@ export class AdminDataService {
     try {
       const { data, error } = await supabase
         .from('parents')
-        .insert([parentData])
+        .upsert([parentData], { 
+          onConflict: 'email',
+          ignoreDuplicates: false 
+        })
         .select()
         .single();
 
@@ -375,34 +378,39 @@ export class AdminDataService {
     try {
       let parentResult;
 
-      // First try to find existing parent by email
+      // Always check for existing parent by email first
       if (parentData.email) {
         const { data: existingParents, error: findError } = await supabase
           .from('parents')
           .select('*')
           .eq('email', parentData.email)
-          .limit(1);
+          .maybeSingle();
 
         if (findError) {
           return { data: null, error: findError.message };
         }
 
-        if (existingParents && existingParents.length > 0) {
+        if (existingParents) {
           // Parent exists, use existing parent
-          parentResult = { data: existingParents[0], error: null };
+          parentResult = { data: existingParents, error: null };
         } else {
-          // Parent doesn't exist, create new one
-          parentResult = await this.createParent(parentData);
-          if (parentResult.error) {
-            return { data: null, error: parentResult.error };
+          // Parent doesn't exist, create new one using upsert to handle any race conditions
+          const { data, error } = await supabase
+            .from('parents')
+            .upsert([parentData], { 
+              onConflict: 'email',
+              ignoreDuplicates: false 
+            })
+            .select()
+            .single();
+
+          if (error) {
+            return { data: null, error: error.message };
           }
+          parentResult = { data, error: null };
         }
       } else {
-        // No email provided, create parent without email check
-        parentResult = await this.createParent(parentData);
-        if (parentResult.error) {
-          return { data: null, error: parentResult.error };
-        }
+        return { data: null, error: 'Parent email is required' };
       }
 
       // Then create the student with the parent's ID
