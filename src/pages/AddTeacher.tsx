@@ -30,6 +30,8 @@ const AddTeacher = () => {
     teacherPhoto: null as File | null
   });
 
+  const [isGeneratingId, setIsGeneratingId] = useState(false);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -45,12 +47,41 @@ const AddTeacher = () => {
     setFormData(prev => ({ ...prev, teacherPhoto: file }));
   };
 
+  // Generate next employee ID on component mount
+  React.useEffect(() => {
+    const loadNextEmployeeId = async () => {
+      setIsGeneratingId(true);
+      const nextId = await AdminDataService.getNextEmployeeId();
+      setFormData(prev => ({ ...prev, idNo: nextId }));
+      setIsGeneratingId(false);
+    };
+    loadNextEmployeeId();
+  }, []);
+
+  const validateForm = async () => {
+    // Validate employee ID uniqueness if user modified it
+    if (formData.idNo) {
+      const isValid = await AdminDataService.validateEmployeeId(formData.idNo);
+      if (!isValid) {
+        toast({
+          title: "Error",
+          description: "Employee ID already exists. Please choose a different ID.",
+          variant: "destructive"
+        });
+        return false;
+      }
+    }
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!(await validateForm())) {
+      return;
+    }
+    
     try {
-      // Generate employee ID
-      const employeeId = AdminDataService.generateEmployeeId();
       
       // Prepare teacher data for database
       const teacherData: TeacherData = {
@@ -61,7 +92,7 @@ const AddTeacher = () => {
         address: formData.address,
         date_of_birth: formData.dateOfBirth || undefined,
         gender: formData.gender || undefined,
-        employee_id: employeeId,
+        employee_id: formData.idNo, // Use form employee ID
         subject: formData.subject,
         class_assigned: formData.class,
         section_assigned: formData.section,
@@ -89,7 +120,7 @@ const AddTeacher = () => {
       
       toast({
         title: "Success",
-        description: `Teacher added successfully! Employee ID: ${employeeId}`,
+        description: `Teacher added successfully! Employee ID: ${formData.idNo}`,
       });
       
       navigate('/all-teachers');
@@ -102,7 +133,7 @@ const AddTeacher = () => {
     }
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
     setFormData({
       firstName: '',
       lastName: '',
@@ -118,6 +149,9 @@ const AddTeacher = () => {
       address: '',
       teacherPhoto: null
     });
+    // Regenerate employee ID after reset
+    const nextId = await AdminDataService.getNextEmployeeId();
+    setFormData(prev => ({ ...prev, idNo: nextId }));
   };
 
   return (
@@ -229,15 +263,19 @@ const AddTeacher = () => {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="idNo">ID No</Label>
+                <Label htmlFor="idNo">Employee ID (Auto-generated, Editable)</Label>
                 <Input
                   id="idNo"
                   name="idNo"
                   value={formData.idNo}
                   onChange={handleInputChange}
-                  placeholder="ID Number"
+                  placeholder={isGeneratingId ? "Generating..." : "Employee ID"}
+                  disabled={isGeneratingId}
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  Auto-generated sequential ID. You can edit this before saving.
+                </p>
               </div>
               
               <div className="space-y-2">

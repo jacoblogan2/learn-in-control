@@ -370,13 +370,39 @@ export class AdminDataService {
     }
   }
 
-  // Create student and parent together
+  // Find or create parent by email, then create student
   static async createStudentWithParent(studentData: StudentData, parentData: ParentData) {
     try {
-      // First create the parent
-      const parentResult = await this.createParent(parentData);
-      if (parentResult.error) {
-        return { data: null, error: parentResult.error };
+      let parentResult;
+
+      // First try to find existing parent by email
+      if (parentData.email) {
+        const { data: existingParents, error: findError } = await supabase
+          .from('parents')
+          .select('*')
+          .eq('email', parentData.email)
+          .limit(1);
+
+        if (findError) {
+          return { data: null, error: findError.message };
+        }
+
+        if (existingParents && existingParents.length > 0) {
+          // Parent exists, use existing parent
+          parentResult = { data: existingParents[0], error: null };
+        } else {
+          // Parent doesn't exist, create new one
+          parentResult = await this.createParent(parentData);
+          if (parentResult.error) {
+            return { data: null, error: parentResult.error };
+          }
+        }
+      } else {
+        // No email provided, create parent without email check
+        parentResult = await this.createParent(parentData);
+        if (parentResult.error) {
+          return { data: null, error: parentResult.error };
+        }
       }
 
       // Then create the student with the parent's ID
@@ -387,8 +413,6 @@ export class AdminDataService {
 
       const studentResult = await this.createStudent(studentDataWithParent);
       if (studentResult.error) {
-        // If student creation fails, we should consider cleaning up the parent
-        // For now, we'll just return the error
         return { data: null, error: studentResult.error };
       }
 
@@ -404,7 +428,77 @@ export class AdminDataService {
     }
   }
 
-  // Generate unique IDs
+  // Generate unique IDs with sequential numbering
+  static async getNextAdmissionNumber(): Promise<string> {
+    try {
+      const { data, error } = await supabase
+        .from('students')
+        .select('admission_number')
+        .order('admission_number', { ascending: false })
+        .limit(1);
+
+      if (error) {
+        console.error('Error getting last admission number:', error);
+        // Fallback to random if query fails
+        return this.generateAdmissionNumber();
+      }
+
+      const currentYear = new Date().getFullYear();
+      const yearPrefix = `ADM${currentYear}`;
+
+      if (!data || data.length === 0) {
+        return `${yearPrefix}0001`;
+      }
+
+      const lastNumber = data[0].admission_number;
+      if (lastNumber && lastNumber.startsWith(yearPrefix)) {
+        const lastSequence = parseInt(lastNumber.slice(-4)) || 0;
+        const nextSequence = (lastSequence + 1).toString().padStart(4, '0');
+        return `${yearPrefix}${nextSequence}`;
+      } else {
+        return `${yearPrefix}0001`;
+      }
+    } catch (error) {
+      console.error('Error generating admission number:', error);
+      return this.generateAdmissionNumber();
+    }
+  }
+
+  static async getNextEmployeeId(): Promise<string> {
+    try {
+      const { data, error } = await supabase
+        .from('teachers')
+        .select('employee_id')
+        .order('employee_id', { ascending: false })
+        .limit(1);
+
+      if (error) {
+        console.error('Error getting last employee ID:', error);
+        return this.generateEmployeeId();
+      }
+
+      const currentYear = new Date().getFullYear();
+      const yearPrefix = `EMP${currentYear}`;
+
+      if (!data || data.length === 0) {
+        return `${yearPrefix}001`;
+      }
+
+      const lastNumber = data[0].employee_id;
+      if (lastNumber && lastNumber.startsWith(yearPrefix)) {
+        const lastSequence = parseInt(lastNumber.slice(-3)) || 0;
+        const nextSequence = (lastSequence + 1).toString().padStart(3, '0');
+        return `${yearPrefix}${nextSequence}`;
+      } else {
+        return `${yearPrefix}001`;
+      }
+    } catch (error) {
+      console.error('Error generating employee ID:', error);
+      return this.generateEmployeeId();
+    }
+  }
+
+  // Fallback methods for backwards compatibility
   static generateAdmissionNumber(): string {
     const currentYear = new Date().getFullYear();
     const randomNum = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
@@ -415,5 +509,34 @@ export class AdminDataService {
     const currentYear = new Date().getFullYear();
     const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
     return `EMP${currentYear}${randomNum}`;
+  }
+
+  // Validate uniqueness of IDs
+  static async validateAdmissionNumber(admissionNumber: string): Promise<boolean> {
+    try {
+      const { data, error } = await supabase
+        .from('students')
+        .select('id')
+        .eq('admission_number', admissionNumber)
+        .limit(1);
+
+      return !error && (!data || data.length === 0);
+    } catch {
+      return false;
+    }
+  }
+
+  static async validateEmployeeId(employeeId: string): Promise<boolean> {
+    try {
+      const { data, error } = await supabase
+        .from('teachers')
+        .select('id')
+        .eq('employee_id', employeeId)
+        .limit(1);
+
+      return !error && (!data || data.length === 0);
+    } catch {
+      return false;
+    }
   }
 }

@@ -25,6 +25,7 @@ const AdmitForm = () => {
     admissionNo: '',
     religion: '',
     email: '',
+    parentEmail: '', // Separate parent email field
     fatherName: '',
     motherName: '',
     fatherOccupation: '',
@@ -36,6 +37,8 @@ const AdmitForm = () => {
     studentPhoto: null as File | null,
     parentPhoto: null as File | null
   });
+
+  const [isGeneratingId, setIsGeneratingId] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -52,17 +55,46 @@ const AdmitForm = () => {
     setFormData(prev => ({ ...prev, [field]: file }));
   };
 
+  // Generate next admission number on component mount
+  React.useEffect(() => {
+    const loadNextAdmissionNumber = async () => {
+      setIsGeneratingId(true);
+      const nextId = await AdminDataService.getNextAdmissionNumber();
+      setFormData(prev => ({ ...prev, admissionNo: nextId }));
+      setIsGeneratingId(false);
+    };
+    loadNextAdmissionNumber();
+  }, []);
+
+  const validateForm = async () => {
+    // Validate admission number uniqueness if user modified it
+    if (formData.admissionNo) {
+      const isValid = await AdminDataService.validateAdmissionNumber(formData.admissionNo);
+      if (!isValid) {
+        toast({
+          title: "Error",
+          description: "Admission number already exists. Please choose a different number.",
+          variant: "destructive"
+        });
+        return false;
+      }
+    }
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!(await validateForm())) {
+      return;
+    }
+    
     try {
-      // Generate admission number
-      const admissionNumber = AdminDataService.generateAdmissionNumber();
       
       // Prepare parent data from form
       const parentData: ParentData = {
         name: formData.fatherName, // Using father's name as primary parent
-        email: formData.email, // We'll use the same email for now
+        email: formData.parentEmail, // Use separate parent email
         phone: formData.phoneNumber,
         address: formData.presentAddress,
         gender: 'Male', // Assuming father is primary parent
@@ -78,7 +110,7 @@ const AdmitForm = () => {
         phone: formData.phoneNumber,
         date_of_birth: formData.dateOfBirth || undefined,
         gender: formData.gender || undefined,
-        admission_number: admissionNumber,
+        admission_number: formData.admissionNo, // Use form admission number
         roll_number: formData.roll,
         class_name: formData.class,
         section: formData.section,
@@ -113,7 +145,7 @@ const AdmitForm = () => {
       
       toast({
         title: "Success",
-        description: `Student admitted successfully! Admission No: ${admissionNumber}. Parent record created and linked.`,
+        description: `Student admitted successfully! Admission No: ${formData.admissionNo}. Parent record ${data.parent ? 'linked' : 'created and linked'}.`,
       });
       
       navigate('/students');
@@ -126,7 +158,7 @@ const AdmitForm = () => {
     }
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
     setFormData({
       firstName: '',
       lastName: '',
@@ -138,6 +170,7 @@ const AdmitForm = () => {
       admissionNo: '',
       religion: '',
       email: '',
+      parentEmail: '',
       fatherName: '',
       motherName: '',
       fatherOccupation: '',
@@ -149,6 +182,9 @@ const AdmitForm = () => {
       studentPhoto: null,
       parentPhoto: null
     });
+    // Regenerate admission number after reset
+    const nextId = await AdminDataService.getNextAdmissionNumber();
+    setFormData(prev => ({ ...prev, admissionNo: nextId }));
   };
 
   return (
@@ -275,15 +311,19 @@ const AdmitForm = () => {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="admissionNo">Admission No</Label>
+                <Label htmlFor="admissionNo">Admission No (Auto-generated, Editable)</Label>
                 <Input
                   id="admissionNo"
                   name="admissionNo"
                   value={formData.admissionNo}
                   onChange={handleInputChange}
-                  placeholder="Admission Number"
+                  placeholder={isGeneratingId ? "Generating..." : "Admission Number"}
+                  disabled={isGeneratingId}
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  Auto-generated sequential number. You can edit this before saving.
+                </p>
               </div>
             </div>
             
@@ -300,14 +340,14 @@ const AdmitForm = () => {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="email">E-mail</Label>
+                <Label htmlFor="email">Student E-mail</Label>
                 <Input
                   id="email"
                   name="email"
                   type="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  placeholder="Email Address"
+                  placeholder="Student Email Address"
                   required
                 />
               </div>
@@ -387,6 +427,22 @@ const AdmitForm = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="parentEmail">Parent E-mail *</Label>
+                <Input
+                  id="parentEmail"
+                  name="parentEmail"
+                  type="email"
+                  value={formData.parentEmail}
+                  onChange={handleInputChange}
+                  placeholder="Parent Email Address"
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  Used to link with existing parent records
+                </p>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="phoneNumber">Phone Number</Label>
                 <Input
